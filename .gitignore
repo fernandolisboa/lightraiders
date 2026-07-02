@@ -6,3 +6,6 @@
 Thumbs.db
 
 # Unity-specific ignores are added when the Unity project is created (Phase 0)
+
+# Tool debris
+.playwright-mcp/
