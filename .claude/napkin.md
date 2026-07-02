@@ -23,9 +23,25 @@
    Do instead: don't re-litigate top-down format, Unity, PvE-first slice, discrete Layers, FishNet, or premium EA; flag conflicts explicitly instead of silently overriding.
 3. **[2026-07-02] The deferred list is a contract**
    Do instead: anything proposed for the slice must evict something; check `docs/vertical-slice-plan.md` deferred list before accepting scope.
+4. **[2026-07-02] Multiword glossary headwords are proper nouns**
+   Do instead: capitalize them mid-sentence (Skill Tree, Safe Pocket, Shield Cell, Choir Remnant); lowercase reads as drift.
+5. **[2026-07-02] Never write past the Hymn mystery**
+   Do instead: the Hymn *ignited* the Light; "what answered" is deliberately unresolved — don't imply an answer in any prose, even a README.
+
+## Execution & Validation
+1. **[2026-07-02] FishNet updates corrupt if imported over a stale copy**
+   Do instead: delete `Assets/FishNet` entirely, then re-import the new version; never run pre-4.6.19 FishNet on Unity 6.
+2. **[2026-07-02] MPPM + FishNet: networked-prefab edits break running virtual players (unfixed Unity limitation, FishNet #916)**
+   Do instead: keep Domain Reload enabled and restart virtual players after editing any networked prefab.
+3. **[2026-07-02] Unity version discipline**
+   Do instead: latest 6000.3.x LTS patch only (6.0 LTS dies Oct 2026; 6000.4/5 are non-LTS tech streams); details in `docs/research/phase0-setup-runbook.md`.
 
 ## Environment & Shell
-1. **[2026-07-02] WSL2 on a Windows host; Unity must run Windows-side**
-   Do instead: treat cross-boundary file I/O (WSL ↔ Windows) as slow; resolve Unity project location with the user before creating it (see Phase 0 handoff).
-2. **[2026-07-02] GitHub repo is fernandolisboa/lightraiders (private), remote via SSH**
+1. **[2026-07-02] Dev is Windows-native as of 2026-07-02 (WSL2 retired for this project — it kept crashing)**
+   Do instead: work in the Windows clone (C:\dev\lightraiders) with Claude Code native in PowerShell; treat any WSL-side copy at /home/ferna/projects/lightraiders as stale — never edit there.
+2. **[2026-07-02] Session knowledge must live in the repo, not /tmp or per-path memory**
+   Do instead: durable notes go in this napkin, docs/handoffs/, or docs/research/ (committed); WSL crashes wiped /tmp scratchpads and per-path memory doesn't follow environment moves.
+3. **[2026-07-02] GitHub repo is fernandolisboa/lightraiders (private)**
    Do instead: use `gh` CLI for issues/labels; issue workflow and label vocabulary live in `docs/agents/`.
+4. **[2026-07-02] LFS rules predate binaries by design**
+   Do instead: `.gitattributes` at repo root already tracks art/audio/model formats; run `git lfs install` once per machine clone before adding any binary.

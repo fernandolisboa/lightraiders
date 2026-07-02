@@ -1,0 +1,66 @@
+# Line endings: normalize to LF in the repo; explicit rules below override.
+* text=auto
+*.cs text diff=csharp
+*.md text
+*.json text
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Unity YAML files are text; route merges through UnityYAMLMerge
+# (configure the merge driver in git config when scene merges become real).
+*.unity text merge=unityyamlmerge
+*.prefab text merge=unityyamlmerge
+*.asset text merge=unityyamlmerge
+*.meta text merge=unityyamlmerge
+*.anim text merge=unityyamlmerge
+*.controller text merge=unityyamlmerge
+*.mat text merge=unityyamlmerge
+*.physicsMaterial text merge=unityyamlmerge
+*.physicsMaterial2D text merge=unityyamlmerge
+
+# Known-binary .asset variants (override the text rule above) — Git LFS
+*[Ll]ighting[Dd]ata.asset filter=lfs diff=lfs merge=lfs -text
+*[Nn]av[Mm]esh.asset filter=lfs diff=lfs merge=lfs -text
+*[Oo]cclusion[Cc]ulling[Dd]ata.asset filter=lfs diff=lfs merge=lfs -text
+*[Tt]errain.asset filter=lfs diff=lfs merge=lfs -text
+
+# Images — Git LFS
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+
+# 3D models — Git LFS
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.FBX filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.obj filter=lfs diff=lfs merge=lfs -text
+*.gltf filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+
+# Audio — Git LFS
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.aif filter=lfs diff=lfs merge=lfs -text
+*.aiff filter=lfs diff=lfs merge=lfs -text
+*.flac filter=lfs diff=lfs merge=lfs -text
+
+# Video — Git LFS
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+
+# Fonts — Git LFS
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+
+# Packages and native binaries — Git LFS
+*.unitypackage filter=lfs diff=lfs merge=lfs -text
+*.dll filter=lfs diff=lfs merge=lfs -text
+*.so filter=lfs diff=lfs merge=lfs -text
+*.dylib filter=lfs diff=lfs merge=lfs -text
