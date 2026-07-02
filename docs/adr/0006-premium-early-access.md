@@ -1,0 +1,3 @@
+# Premium Early Access, not free-to-play
+
+Light Raiders will launch as a paid title (~$15–25) on Steam Early Access once the core loop is proven fun, despite the obvious Arc Raiders-adjacent temptation of free-to-play with cosmetics. The deciding reason is not revenue but cheating: free accounts make bans toothless, and cheater infestations are the documented first domino in the PvP-extraction population death spiral (The Cycle: Frontier et al. — see docs/research/reference-research.md §6). A price tag is the cheapest anti-cheat system that exists. Cosmetics remain earnable in-game; a paid cosmetic shop is reconsidered only after 1.0 and may never grant gameplay advantages of any kind.

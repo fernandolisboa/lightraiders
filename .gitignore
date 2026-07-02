@@ -1,0 +1,8 @@
+# Claude Code local settings (machine-specific; napkin.md IS committed)
+.claude/settings.local.json
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Unity-specific ignores are added when the Unity project is created (Phase 0)
