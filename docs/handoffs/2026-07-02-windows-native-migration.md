@@ -1,6 +1,6 @@
 # Handoff: Windows-native migration + Phase 0 start
 
-Written 2026-07-02, late in the Phase 0 kickoff session, which ran in WSL2. WSL2 crashed repeatedly (killing background agent work and wiping `/tmp`), and the environment research independently concluded Windows-native is correct for a Unity project regardless — so development moves to **Windows: repo at `C:\dev\lightraiders`, Claude Code native in PowerShell**. This document lets a fresh Windows session pick up with zero context loss. Everything is committed and pushed; there is no state outside this repo worth recovering.
+Written 2026-07-02, late in the Phase 0 kickoff session, which ran in WSL2. WSL2 crashed repeatedly (killing background agent work and wiping `/tmp`), and the environment research independently concluded Windows-native is correct for a Unity project regardless — so development moves to **Windows: repo at `C:\Users\ferna\source\repos\lightraiders`, Claude Code native in PowerShell**. This document lets a fresh Windows session pick up with zero context loss. Everything is committed and pushed; there is no state outside this repo worth recovering.
 
 ## State at handoff (all pushed to `main`)
 
@@ -18,14 +18,14 @@ Written 2026-07-02, late in the Phase 0 kickoff session, which ran in WSL2. WSL2
 
 ## Environment expectations on Windows
 
-- Prerequisites the user installs in PowerShell (runbook §1): Git for Windows, GitHub CLI, Unity Hub via winget; Claude Code native; `gh auth login`; clone to `C:\dev\lightraiders`; `git lfs install`. Verify each before relying on it (`git --version`, `gh auth status`, `git lfs version`).
+- Already installed by the user (verify, don't reinstall): Git for Windows, GitHub CLI, Unity Hub, Claude Code native; repo cloned at `C:\Users\ferna\source\repos\lightraiders`. Check `git --version`, `gh auth status`, `git lfs version`, and run `git lfs install` once in the clone.
 - Native Windows Claude Code has no bash sandboxing; the shell is Git Bash via Git for Windows. Expect Windows paths in Unity-generated `.sln`/`.csproj` — that is correct and wanted.
 - The old WSL copy at `/home/ferna/projects/lightraiders` is **stale by definition** from now on. Never edit or pull from it; it may lag `main`.
 - Per-path agent memory from the WSL sessions does NOT auto-load on Windows. Rebuild memory from this repo's docs if useful; the napkin carries the durable rules.
 
 ## Non-negotiables (the user has corrected agents on these)
 
-- **Async answers**: the user replies to questions in minutes-or-longer. On AskUserQuestion timeout, re-ask the same question and wait. Never proceed on a substituted answer.
+- **Autonomy first; questions park, never loop**: the user wants autonomous work by default and replies to questions in minutes-or-longer. On AskUserQuestion timeout, do NOT re-ask in a loop and do NOT substitute an answer: continue independent work, and when only the blocked decision remains, restate the question as plain text (options + recommendation) as the final message and end the turn — it waits in the transcript until they return.
 - **One question at a time**, recommended option marked, honest plain-language trade-offs.
 - **English only** in every artifact.
 - **Glossary discipline** (`CONTEXT.md`): canonical terms exactly; multiword headwords are proper nouns (Skill Tree, Safe Pocket). Never write past the Hymn mystery.

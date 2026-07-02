@@ -7,8 +7,8 @@
 - Each item includes date + "Do instead".
 
 ## User Directives (Highest Priority)
-1. **[2026-07-02] User answers questions asynchronously — may take minutes+**
-   Do instead: on AskUserQuestion timeout, re-ask the same question and wait; never substitute an answer or wind down the turn.
+1. **[2026-07-02] User wants autonomy; answers arrive late — NEVER re-ask in a loop (supersedes earlier re-ask rule)**
+   Do instead: on AskUserQuestion timeout, continue independent work; when only the blocked decision remains, restate the question as plain text (options + recommendation) as the final message and end the turn — it waits in the transcript. Never substitute an answer; never poll.
 2. **[2026-07-02] English only, everywhere in this project**
    Do instead: write all repo content, issues, commits, and handoffs in English, even when prompted in Portuguese; translate rather than preserve Portuguese drafts.
 3. **[2026-07-02] One question at a time, with a recommendation**
@@ -38,7 +38,7 @@
 
 ## Environment & Shell
 1. **[2026-07-02] Dev is Windows-native as of 2026-07-02 (WSL2 retired for this project — it kept crashing)**
-   Do instead: work in the Windows clone (C:\dev\lightraiders) with Claude Code native in PowerShell; treat any WSL-side copy at /home/ferna/projects/lightraiders as stale — never edit there.
+   Do instead: work in the Windows clone (C:\Users\ferna\source\repos\lightraiders) with Claude Code native in PowerShell; treat any WSL-side copy at /home/ferna/projects/lightraiders as stale — never edit there.
 2. **[2026-07-02] Session knowledge must live in the repo, not /tmp or per-path memory**
    Do instead: durable notes go in this napkin, docs/handoffs/, or docs/research/ (committed); WSL crashes wiped /tmp scratchpads and per-path memory doesn't follow environment moves.
 3. **[2026-07-02] GitHub repo is fernandolisboa/lightraiders (private)**

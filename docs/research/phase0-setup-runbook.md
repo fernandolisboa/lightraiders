@@ -4,7 +4,7 @@ Synthesized 2026-07-02 from a 7-topic research sweep with adversarial verificati
 
 ## 1. Environment: Windows-native (decided 2026-07-02)
 
-The repo and Unity project live on the Windows filesystem (`C:\dev\lightraiders`), with Claude Code running natively on Windows (PowerShell). The WSL2 setup is retired for this project.
+The repo and Unity project live on the Windows filesystem (`C:\Users\ferna\source\repos\lightraiders`), with Claude Code running natively on Windows (PowerShell). The WSL2 setup is retired for this project.
 
 Why (each point independently sufficient):
 
@@ -14,18 +14,14 @@ Why (each point independently sufficient):
 - Native Windows Claude Code gets correct `C:\` paths in Unity-generated `.sln`/`.csproj` and plain-localhost access to Unity MCP bridges (which WSL needs netsh port-forwarding for) (https://github.com/CoplayDev/unity-mcp/wiki/3.-Common-Setup-Problems).
 - Empirically: WSL2 crashed repeatedly during this project's kickoff session, killing background work and wiping `/tmp`.
 
-Windows-side one-time setup, in PowerShell:
+Windows-side one-time setup (done 2026-07-02: git, gh, Unity Hub, and Claude Code installed; repo cloned). Remaining per-machine steps, in PowerShell:
 
 ```powershell
-winget install -e --id Git.Git          # includes Git LFS and Git Bash
-winget install -e --id GitHub.cli
-winget install -e --id Unity.UnityHub   # fallback: UnityHubSetup-x64.exe from unity.com/download on hash mismatch
-irm https://claude.ai/install.ps1 | iex # Claude Code native
-gh auth login                            # HTTPS + credential manager is simplest
-gh repo clone fernandolisboa/lightraiders C:\dev\lightraiders
-cd C:\dev\lightraiders; git lfs install
+cd C:\Users\ferna\source\repos\lightraiders
+git lfs install                          # wires LFS filters into git config; Git for Windows bundles the binary
+gh auth status                           # confirm; `gh auth login` if not
 # optional, speeds Unity + git noticeably (admin shell):
-Add-MpPreference -ExclusionPath 'C:\dev'
+Add-MpPreference -ExclusionPath 'C:\Users\ferna\source\repos'
 ```
 
 Set git identity if fresh: `git config --global user.name/user.email`.
