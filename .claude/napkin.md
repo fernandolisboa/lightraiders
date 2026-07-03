@@ -35,6 +35,10 @@
    Do instead: keep Domain Reload enabled and restart virtual players after editing any networked prefab.
 3. **[2026-07-02] Unity version discipline**
    Do instead: latest 6000.3.x LTS patch only (6.0 LTS dies Oct 2026; 6000.4/5 are non-LTS tech streams); details in `docs/research/phase0-setup-runbook.md`.
+4. **[2026-07-02] Legacy-input assets throw InvalidOperationException under the template's New-only input mode**
+   Do instead: keep Player Settings > Active Input Handling = Both (set 2026-07-02); write our own code on the new Input System; expect third-party demos to poll legacy UnityEngine.Input.
+5. **[2026-07-02] BiRP-era materials render magenta under URP (FishNet demos are all pink — expected)**
+   Do instead: never "fix" materials inside Assets/FishNet (wiped on update); for Phase 6 purchases, verify URP compatibility before buying.
 
 ## Environment & Shell
 1. **[2026-07-02] Dev is Windows-native as of 2026-07-02 (WSL2 retired for this project — it kept crashing)**
