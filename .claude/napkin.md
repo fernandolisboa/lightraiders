@@ -15,6 +15,8 @@
    Do instead: ask a single question per AskUserQuestion, mark the recommended option, state honest trade-offs in plain language with concrete numbers.
 4. **[2026-07-02] User occasionally misclicks options**
    Do instead: for irreversible or surprising answers, confirm once before acting.
+5. **[2026-07-02] User will NOT take courses or study Unity/game-dev — AI builds the game (supersedes runbook §7 learning path)**
+   Do instead: agents write all code/config; give click-level Editor steps for GUI-only work; never assign tutorials or "go learn X"; if AI-driven dev stalls, say so plainly — his stated fallback is stopping the project, not classes.
 
 ## Domain Behavior Guardrails
 1. **[2026-07-02] CONTEXT.md glossary is law**

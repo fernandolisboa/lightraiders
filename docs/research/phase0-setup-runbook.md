@@ -64,6 +64,8 @@ Set git identity if fresh: `git config --global user.name/user.email`.
 
 ## 7. Learning path (~4 weeks, doing over watching)
 
+> **Superseded 2026-07-02**: the developer decided against any formal learning path — development is AI-driven, with the developer directing, handling Editor GUI steps, and playtesting (see `docs/vertical-slice-plan.md`, Phase 0). Table retained as reference material only.
+
 | Week | Do | Notes |
 |---|---|---|
 | 1 | **Unity Essentials** pathway on Unity 6.3 (learn.unity.com) | Officially updated for 6.3; ~1 focused week. Code Monkey's free C# course as reference, basics units only |

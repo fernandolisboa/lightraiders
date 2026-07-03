@@ -17,7 +17,7 @@ A networked co-op PvE extraction raid you can put in friends' hands and answer o
 | Economy | 6 loot families, Stash, Workbench, Recycler, sell-only Trader, Lumens. Full loot on death + Safe Pocket |
 | Progression | ~12-node utility/economy Skill Tree, 1 story Project, ~5 Trials |
 | The Fold | Menu screens only (stash/craft/recycle/trade/skills). Walkable Fold is post-slice |
-| Target | ~6–9 months full-time, month 1 mostly learning |
+| Target | ~6–9 months full-time, AI-driven development (learning month dropped 2026-07-02) |
 
 ## Explicitly deferred (decided, not forgotten)
 
@@ -27,7 +27,7 @@ PvP hostility (first post-slice milestone) · dedicated servers + anti-cheat (Pv
 
 Ordered by risk-to-the-fun, not by convenience. Each phase ends with something playable.
 
-**Phase 0 — Foundations (~4 weeks).** Install Unity 6 LTS + Unity Hub on the Windows host, Rider or VS, `git init` this repo. Learn: C# basics, Unity fundamentals (any current beginner course), then FishNet's own examples and docs. Exit criteria: a capsule moves and shoots a projectile in a networked session with a second machine/build connected.
+**Phase 0 — Foundations (revised 2026-07-02).** Environment done and validated 2026-07-02: Unity 6.3 LTS, VS Code, repo hygiene + LFS, FishNet 4.7.2, MPPM with two virtual players syncing the prediction demo. The original learn-first framing (courses, ~4 weeks, "month 1 mostly learning") is dropped by decision: development is AI-driven — agents write all code and configuration; the developer directs, performs the Editor GUI steps agents cannot, and playtests. Exit criteria unchanged: a capsule moves and shoots a projectile in a networked session with a second client connected — built in this project, not a FishNet demo.
 
 **Phase 1 — Core feel, gray-boxed (~4–6 weeks).** Top-down camera rig, movement, 360° mouse aim, projectile combat vs dummy targets, server-authoritative from the first line (ADR 0005). Damage, health, shield, death → dropped-loot bag. All gray boxes and capsules. Exit: shooting feels good with 3 players in a graybox arena — *this is the slice's first go/no-go signal.*
 
@@ -56,9 +56,10 @@ Ordered by risk-to-the-fun, not by convenience. Each phase ends with something p
 3. **Solo-multiplayer testing friction** — build a second-client workflow early (ParrelSync or multiplayer play mode) or every network feature costs double.
 4. **The art bar** — "not pixelated, decent graphics" is achievable with Synty at top-down, but validate with free Synty samples at the real camera angle before spending.
 
-## Week one, concretely
+## Week one, concretely (revised 2026-07-02)
 
-1. Install Unity Hub + Unity 6 LTS (Windows side), Rider/VS Code, and set up the Unity project in this repo; `git init`, commit the docs.
-2. Start a beginner Unity/C# course and do it *in* this project's throwaway scenes.
-3. Import FishNet (free) and run its example scenes; connect two local clients.
-4. End of week: a capsule you control, on a top-down camera, in a scene a friend can join over Relay/localhost — however ugly.
+The original items 1 and 3 (environment; FishNet + two local clients) were completed 2026-07-02; the beginner-course item is dropped with the learn-first framing.
+
+1. Agents build the Phase 0 scene in `game/`: a networked capsule on a top-down camera, WASD movement, server-spawned projectiles — FishNet, server-authoritative from the first line (ADR 0005).
+2. The developer wires whatever requires the Editor GUI (scene/prefab hookups agents can't reach), presses Play, and validates against MPPM virtual players.
+3. End of week: the Phase 0 exit criteria — a capsule moves and shoots in a networked session with a second client connected — however ugly.
