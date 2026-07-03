@@ -22,7 +22,7 @@ Written 2026-07-02, continuing directly from `docs/handoffs/2026-07-02-windows-n
 - `game/Assets/FishNet/` + `game/Assets/FishNet.meta` (untracked — the whole FishNet import)
 - `game/Assets/DefaultPrefabObjects.asset` + `.meta` (untracked — FishNet auto-generates this on first import/domain reload)
 
-None of this has been committed. Per the project's hard rule, commits only happen with the user's explicit go-ahead each time — don't batch-commit this without asking first, even though it's all expected, wanted content.
+None of this has been committed. *(Superseded later the same session: everything was committed and pushed, MPPM was validated end-to-end, and the commit-approval rule itself was retired — git operations are autonomous now; see `.claude/napkin.md` directive 6.)*
 
 ## Read first, in order
 
@@ -40,7 +40,7 @@ None of this has been committed. Per the project's hard rule, commits only happe
 
 ## Non-negotiables (unchanged from prior handoff, still apply)
 
-Autonomy-first questioning (one question at a time, recommended option, never loop on timeout — restate as plain text and end turn instead), English only, `CONTEXT.md` glossary discipline, ADRs 0001–0006 closed, commits only with explicit go-ahead. Full detail in `.claude/napkin.md` — not duplicated here.
+Autonomy-first questioning (one question at a time, recommended option, never loop on timeout — restate as plain text and end turn instead), English only, `CONTEXT.md` glossary discipline, ADRs 0001–0006 closed. Git is autonomous as of later this session — no commit/push/PR go-aheads (napkin directive 6 supersedes the older rule stated here and in prior handoffs). Full detail in `.claude/napkin.md` — not duplicated here.
 
 ## Landmines (new this session, in addition to the prior handoff's list)
 
