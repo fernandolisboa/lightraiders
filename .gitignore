@@ -9,3 +9,6 @@ Thumbs.db
 
 # Tool debris
 .playwright-mcp/
+
+# Unity CLI run outputs
+/artifacts/
