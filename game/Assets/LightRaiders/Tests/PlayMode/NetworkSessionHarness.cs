@@ -21,12 +21,15 @@ namespace LightRaiders.Tests
     /// </summary>
     public sealed class NetworkSessionHarness
     {
+        /* Duplicated from SessionAssetPaths: this assembly cannot reference the
+         * editor-only LightRaiders.Editor asmdef where those constants live. */
         private const string RaiderPrefabPath = "Assets/LightRaiders/Prefabs/Raider.prefab";
         private const string DefaultPrefabObjectsPath = "Assets/DefaultPrefabObjects.asset";
 
         /// <summary>
         /// Next port to hand out. Static so consecutive tests in one run never
-        /// reuse a port that may still be closing.
+        /// reuse a port that may still be closing. The 7801 base clears Tugboat's
+        /// default 7770 so tests never collide with a live editor-hosted session.
         /// </summary>
         private static ushort _nextPort = 7801;
 
@@ -41,6 +44,19 @@ namespace LightRaiders.Tests
 
         public NetworkManager CreateNetworkManager(bool withSpawner)
         {
+            /* Resolve the Raider prefab BEFORE creating any GameObject: failing
+             * afterwards would leak an inactive manager object that teardown
+             * never sees. */
+            NetworkObject raiderPrefab = null;
+            if (withSpawner)
+            {
+#if UNITY_EDITOR
+                raiderPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(RaiderPrefabPath);
+#endif
+                if (raiderPrefab == null)
+                    Assert.Fail("Raider prefab missing — run 'Light Raiders > Generate Session Assets' or the documented -executeMethod first.");
+            }
+
             GameObject go = new GameObject("NetworkManager-" + _createdManagers.Count);
             // Inactive while configuring: NetworkManager.Awake must run after setup.
             go.SetActive(false);
@@ -54,8 +70,12 @@ namespace LightRaiders.Tests
             /* Inspector-equivalent arrangement: allow several NetworkManagers to
              * coexist during a test and keep them scene-bound for easy teardown. */
             SerializedObject serializedManager = new SerializedObject(networkManager);
-            serializedManager.FindProperty("_persistence").intValue = (int)NetworkManager.PersistenceType.AllowMultiple;
-            serializedManager.FindProperty("_dontDestroyOnLoad").boolValue = false;
+            SerializedProperty persistence = serializedManager.FindProperty("_persistence");
+            Assert.IsNotNull(persistence, "FishNet renamed serialized field '_persistence' — update NetworkSessionHarness.");
+            persistence.intValue = (int)NetworkManager.PersistenceType.AllowMultiple;
+            SerializedProperty dontDestroyOnLoad = serializedManager.FindProperty("_dontDestroyOnLoad");
+            Assert.IsNotNull(dontDestroyOnLoad, "FishNet renamed serialized field '_dontDestroyOnLoad' — update NetworkSessionHarness.");
+            dontDestroyOnLoad.boolValue = false;
             serializedManager.ApplyModifiedPropertiesWithoutUndo();
 
             /* Must be assigned before activation: a null SpawnablePrefabs in play
@@ -66,12 +86,6 @@ namespace LightRaiders.Tests
             if (withSpawner)
             {
                 PlayerSpawner spawner = go.AddComponent<PlayerSpawner>();
-                NetworkObject raiderPrefab = null;
-#if UNITY_EDITOR
-                raiderPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(RaiderPrefabPath);
-#endif
-                if (raiderPrefab == null)
-                    Assert.Fail("Raider prefab missing — run 'Light Raiders > Generate Session Assets' or the documented -executeMethod first.");
                 spawner.SetPlayerPrefab(raiderPrefab);
             }
 
@@ -113,10 +127,12 @@ namespace LightRaiders.Tests
 
                 if (networkManager.Initialized)
                 {
-                    if (networkManager.ClientManager.Started)
-                        networkManager.ClientManager.StopConnection();
-                    if (networkManager.ServerManager.Started)
-                        networkManager.ServerManager.StopConnection(true);
+                    /* Unconditional: Started only reports fully-started, so gating
+                     * on it would skip connections stuck in Starting. StopConnection
+                     * on a never-started connection is safe in FishNet/Tugboat — it
+                     * just returns false. */
+                    networkManager.ClientManager.StopConnection();
+                    networkManager.ServerManager.StopConnection(true);
 
                     // Best effort: give the transport a moment to close sockets.
                     float deadline = Time.realtimeSinceStartup + 5f;

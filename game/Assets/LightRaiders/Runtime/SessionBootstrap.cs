@@ -61,7 +61,10 @@ namespace LightRaiders
 
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
-            if (args.ConnectionState == LocalConnectionState.Started)
+            /* Guard against double-starts: if the server ever stops and restarts,
+             * this fires on every Started transition, but the client may already
+             * be connected. Cheaper and restart-safe versus unsubscribing once. */
+            if (args.ConnectionState == LocalConnectionState.Started && !_networkManager.ClientManager.Started)
                 _networkManager.ClientManager.StartConnection();
         }
     }

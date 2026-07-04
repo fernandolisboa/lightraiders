@@ -17,6 +17,11 @@ namespace LightRaiders.Editor
     /// </summary>
     public static class ArenaSceneGenerator
     {
+        /* Root-object naming contract: the idempotency sweep in GenerateAll tears
+         * down scene roots by these names before the rebuild recreates them. */
+        private const string ArenaRootName = "Arena";
+        private const string NetworkSessionRootName = "NetworkSession";
+
         /// <summary>
         /// Generates the Raider prefab and the bootstrap arena scene.
         /// Also CLI-invocable: -executeMethod LightRaiders.Editor.ArenaSceneGenerator.GenerateAll
@@ -40,7 +45,7 @@ namespace LightRaiders.Editor
             // Idempotency: tear down previously generated roots before rebuilding.
             foreach (GameObject rootGo in scene.GetRootGameObjects())
             {
-                if (rootGo.name == "Arena" || rootGo.name == "NetworkSession")
+                if (rootGo.name == ArenaRootName || rootGo.name == NetworkSessionRootName)
                     Object.DestroyImmediate(rootGo);
             }
 
@@ -48,7 +53,7 @@ namespace LightRaiders.Editor
             BuildNetworkSession(spawnPoints);
 
             /* Build-settings registration is deliberately unnecessary: editor and MPPM
-             * play modes use the currently open scene, and there are no player builds yet. */
+             * play modes use the currently open scene, and there are no standalone builds yet. */
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
@@ -59,7 +64,7 @@ namespace LightRaiders.Editor
             Material floorMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaFloorMaterial, new Color(0.55f, 0.55f, 0.55f));
             Material obstacleMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaObstacleMaterial, new Color(0.30f, 0.30f, 0.32f));
 
-            GameObject arena = new GameObject("Arena");
+            GameObject arena = new GameObject(ArenaRootName);
 
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             floor.name = "Floor";
@@ -115,18 +120,29 @@ namespace LightRaiders.Editor
 
         private static void BuildNetworkSession(Transform[] spawnPoints)
         {
-            GameObject session = new GameObject("NetworkSession");
+            GameObject session = new GameObject(NetworkSessionRootName);
 
-            // Transport defaults are kept: port 7770, localhost.
+            /* Transport defaults are kept: port 7770; the CLIENT connect address
+             * defaults to localhost, but the SERVER binds all interfaces (Tugboat's
+             * _ipv4BindAddress default of empty means 0.0.0.0), so the session is
+             * LAN-exposed — hence the possible Windows firewall prompt. Acceptable
+             * for this local slice. */
             session.AddComponent<Tugboat>();
 
             NetworkManager networkManager = session.AddComponent<NetworkManager>();
             /* Explicit assignment: a null SpawnablePrefabs at play time is a hard error,
              * and relying on edit-mode auto-assign would log noise every generation. */
-            networkManager.SpawnablePrefabs = AssetDatabase.LoadAssetAtPath<DefaultPrefabObjects>(SessionAssetPaths.DefaultPrefabObjects);
+            DefaultPrefabObjects defaultPrefabObjects = AssetDatabase.LoadAssetAtPath<DefaultPrefabObjects>(SessionAssetPaths.DefaultPrefabObjects);
+            /* Fail fast: this method runs under -executeMethod, where a silently
+             * half-built scene would still exit 0. */
+            if (defaultPrefabObjects == null)
+                throw new System.InvalidOperationException("Expected a DefaultPrefabObjects asset at '" + SessionAssetPaths.DefaultPrefabObjects + "' but none was found — check FishNet's prefab-generation settings (Fish-Networking > Configuration) and rerun generation.");
+            networkManager.SpawnablePrefabs = defaultPrefabObjects;
 
             PlayerSpawner spawner = session.AddComponent<PlayerSpawner>();
             NetworkObject raiderPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.RaiderPrefab);
+            if (raiderPrefab == null)
+                throw new System.InvalidOperationException("Expected the Raider prefab (with a NetworkObject) at '" + SessionAssetPaths.RaiderPrefab + "' but none was found — RaiderPrefabGenerator.Generate should have created it earlier in this run; rerun generation and check the log.");
             spawner.SetPlayerPrefab(raiderPrefab);
             spawner.Spawns = spawnPoints;
 
