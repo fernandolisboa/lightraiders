@@ -171,6 +171,20 @@ namespace LightRaiders.Tests
                 "Server Raider never settled onto the floor.");
         }
 
+        /// <summary>
+        /// Waits until the server's TimeManager has advanced by the given tick
+        /// count, guaranteeing the current intent was actually processed that
+        /// many times (wall-clock waits cannot guarantee any tick ran).
+        /// Promoted from RaiderAimTests.
+        /// </summary>
+        public IEnumerator WaitForServerTicks(NetworkManager server, uint tickCount)
+        {
+            uint targetTick = server.TimeManager.Tick + tickCount;
+            yield return WaitUntil(
+                () => server.TimeManager.Tick >= targetTick,
+                "Server ticks never advanced.");
+        }
+
         public IEnumerator Teardown()
         {
             for (int i = _createdManagers.Count - 1; i >= 0; i--)
