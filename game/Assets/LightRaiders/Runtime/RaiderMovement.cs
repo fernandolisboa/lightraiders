@@ -21,7 +21,13 @@ namespace LightRaiders
 
         private CharacterController _controller;
         private IRaiderIntentProvider _intentProvider;
-        private RaiderIntent _lastReceivedIntent;
+
+        /* AimPoint starts as the NaN sentinel, not default(Vector3): zero is a
+         * VALID world point and would snap every freshly spawned Raider to face
+         * world origin on its first server tick, discarding the spawn rotation
+         * before the owner's first intent can possibly arrive. */
+        private RaiderIntent _lastReceivedIntent = new RaiderIntent { AimPoint = new Vector3(float.NaN, 0f, float.NaN) };
+
         private float _verticalVelocity;
 
         /// <summary>

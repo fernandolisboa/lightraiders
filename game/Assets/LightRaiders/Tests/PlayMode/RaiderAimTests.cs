@@ -89,7 +89,7 @@ namespace LightRaiders.Tests
             yield return _harness.SettleServerRaider(serverRaider);
             Vector3 basePos = serverRaider.transform.position;
 
-            // Yaw 90: due +X from the raider, 45 degrees off the origin bearing from spawn A.
+            // Yaw 90: due +X from the raider, 135 degrees off the 225-degree origin bearing from spawn A.
             Vector3 firstAim = new Vector3(basePos.x + 10f, 0f, basePos.z);
             Assert.That(
                 NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, firstAim - basePos),
@@ -109,7 +109,8 @@ namespace LightRaiders.Tests
              * the 225-degree origin bearing so the zero-aim default facing cannot
              * satisfy the wait. y=5 is deliberate: correct code flattens Y, so
              * forward.y stays ~0; a flatten-omission mutant pitches forward.y to
-             * ~0.45 and the pitch assert below kills it. */
+             * ~0.33 (5 over the 15.1 slant range) and the pitch assert below
+             * kills it. */
             Vector3 secondAim = new Vector3(basePos.x - 10f, 5f, basePos.z + 10f);
 
             scripted.Intent = new RaiderIntent { AimPoint = secondAim };
@@ -126,16 +127,19 @@ namespace LightRaiders.Tests
 
             /* Sanitization holds. Positive control = the two convergences above:
              * aim intents demonstrably steer facing, so an unchanged facing below
-             * means the bad point was discarded, not that aim is inert. */
+             * means the bad point was discarded, not that aim is inert. The hold
+             * window is measured in server TICKS, not wall time: a single editor
+             * stall could consume a realtime window before any tick processed the
+             * bad intent, letting the assert pass vacuously. */
             scripted.Intent = new RaiderIntent { AimPoint = new Vector3(float.NaN, 0f, float.NaN) };
-            yield return new WaitForSecondsRealtime(1f);
+            yield return WaitForServerTicks(server, 15);
             Assert.That(
                 NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, secondAim - basePos),
                 Is.LessThan(5f),
                 "Non-finite AimPoint changed facing.");
 
             scripted.Intent = new RaiderIntent { AimPoint = serverRaider.transform.position };
-            yield return new WaitForSecondsRealtime(1f);
+            yield return WaitForServerTicks(server, 15);
             Assert.That(
                 NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, secondAim - basePos),
                 Is.LessThan(5f),
@@ -255,6 +259,19 @@ namespace LightRaiders.Tests
                 Mathf.Abs(serverRaider.transform.position.z - basePos.z),
                 Is.LessThan(0.5f),
                 "Travel deviated from +X - motion steered by facing.");
+        }
+
+        /// <summary>
+        /// Waits until the server's TimeManager has advanced by the given tick
+        /// count, guaranteeing the current intent was actually processed that
+        /// many times (wall-clock waits cannot guarantee any tick ran).
+        /// </summary>
+        private IEnumerator WaitForServerTicks(NetworkManager server, uint tickCount)
+        {
+            uint targetTick = server.TimeManager.Tick + tickCount;
+            yield return _harness.WaitUntil(
+                () => server.TimeManager.Tick >= targetTick,
+                "Server ticks never advanced.");
         }
     }
 }
