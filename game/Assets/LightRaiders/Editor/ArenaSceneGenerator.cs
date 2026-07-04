@@ -12,8 +12,9 @@ namespace LightRaiders.Editor
 {
     /// <summary>
     /// Generates (or regenerates) the bootstrap arena scene with the networked
-    /// session objects wired up. Idempotent: reruns rebuild the Arena and
-    /// NetworkSession roots in place.
+    /// session objects wired up. Idempotent: reruns rebuild the Arena,
+    /// NetworkSession and RaiderCameraRig roots in place (and drop the scene
+    /// template's default camera).
     /// </summary>
     public static class ArenaSceneGenerator
     {

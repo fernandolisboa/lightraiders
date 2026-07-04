@@ -121,12 +121,24 @@ namespace LightRaiders.Tests
                 "Owned Raider never moved in response to intent.",
                 15f);
 
-            /* Lock-on while moving: per-poll error is ~5*frameDt plus up to one
-             * 30Hz tick of interpolation catch-up (~0.17m); any frame under
-             * ~65ms satisfies 0.5, and WaitUntil polls every frame. */
+            /* Let the Raider cover real distance before asserting lock: a smooth
+             * lag-follower only accrues its steady-state trail (~speed*tau)
+             * after sustained motion; asserting at 0.5m of travel would pass
+             * any follower that moved at all. */
             yield return _harness.WaitUntil(
-                () => Vector3.Distance(RigTargetPoint(rig), ownedRaider.transform.position) < 0.5f,
-                "Rig lost lock on the owned Raider while it moved.");
+                () => NetworkSessionHarness.PlanarDistance(ownedRaider.transform.position, baseline) > 3f,
+                "Owned Raider stopped before covering the lock-check distance.",
+                15f);
+
+            /* Lock-on while moving, fixed pitch folded into the condition (a
+             * tilt-while-moving rig must fail here): per-poll error is
+             * ~5*frameDt plus up to one 30Hz tick of interpolation catch-up
+             * (~0.17m); any frame under ~65ms satisfies 0.5, and WaitUntil
+             * polls every frame. */
+            yield return _harness.WaitUntil(
+                () => Vector3.Distance(RigTargetPoint(rig), ownedRaider.transform.position) < 0.5f
+                    && Quaternion.Angle(rig.transform.rotation, Quaternion.Euler(RaiderCameraRig.PitchDegrees, 0f, 0f)) < 0.1f,
+                "Rig lost lock or bent its pitch while the owned Raider moved.");
 
             scripted.Intent = default;
             yield return WaitUntilStationary(ownedRaider.transform);
@@ -155,8 +167,9 @@ namespace LightRaiders.Tests
             clientB.ClientManager.StartConnection();
 
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountRaiders(clientA.ClientManager.Objects.Spawned) == 2,
-                "Client A never saw both Raiders.");
+                () => NetworkSessionHarness.CountRaiders(clientA.ClientManager.Objects.Spawned) == 2
+                    && NetworkSessionHarness.CountRaiders(clientB.ClientManager.Objects.Spawned) == 2,
+                "Clients never saw both Raiders.");
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.FindOwnedRaider(clientA) != null && NetworkSessionHarness.FindOwnedRaider(clientB) != null,
                 "Clients never saw their owned Raiders.");
@@ -168,6 +181,8 @@ namespace LightRaiders.Tests
             NetworkObject raiderB = NetworkSessionHarness.FindOwnedRaider(clientB);
             NetworkObject raiderBOnA = NetworkSessionHarness.FindOnView(clientA.ClientManager.Objects.Spawned, raiderB.ObjectId);
             Assert.IsNotNull(raiderBOnA, "Client A's view has no instance of B's Raider.");
+            NetworkObject raiderAOnB = NetworkSessionHarness.FindOnView(clientB.ClientManager.Objects.Spawned, raiderA.ObjectId);
+            Assert.IsNotNull(raiderAOnB, "Client B's view has no instance of A's Raider.");
             NetworkObject raiderBOnServer = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, raiderB.ObjectId);
             Assert.IsNotNull(raiderBOnServer, "Server view has no instance of B's Raider.");
 
@@ -181,15 +196,27 @@ namespace LightRaiders.Tests
             yield return _harness.SettleServerRaider(raiderAOnServer);
             yield return _harness.SettleServerRaider(raiderBOnServer);
 
-            // Rig for client A only: it must follow A's Raider and nothing else.
+            // Rig for client A: it must follow A's Raider and nothing else.
             GameObject rigGo = new GameObject("RaiderCameraRigA");
             _sceneObjects.Add(rigGo);
             RaiderCameraRig rig = rigGo.AddComponent<RaiderCameraRig>();
             rig.SetNetworkManager(clientA);
 
+            /* Second rig on client B. On the second-connecting client the REMOTE
+             * Raider enumerates first in the spawned dictionary, so this rig is
+             * the one that catches a dropped IsOwner filter regardless of which
+             * client wins the connect race. */
+            GameObject rigGoB = new GameObject("RaiderCameraRigB");
+            _sceneObjects.Add(rigGoB);
+            RaiderCameraRig rigB = rigGoB.AddComponent<RaiderCameraRig>();
+            rigB.SetNetworkManager(clientB);
+
             yield return _harness.WaitUntil(
                 () => Vector3.Distance(RigTargetPoint(rig), raiderA.transform.position) < 0.5f,
-                "Rig never acquired A's owned Raider.");
+                "Rig A never acquired A's owned Raider.");
+            yield return _harness.WaitUntil(
+                () => Vector3.Distance(RigTargetPoint(rigB), raiderB.transform.position) < 0.5f,
+                "Rig B never acquired B's owned Raider.");
 
             Vector3 rigBaseline = rig.transform.position;
             Vector3 baselineA = raiderA.transform.position;
@@ -204,15 +231,29 @@ namespace LightRaiders.Tests
                 "Positive control failed: A's own Raider never moved.",
                 15f);
 
+            // Sustained-motion gate before lock asserts; see the other fixture test.
             yield return _harness.WaitUntil(
-                () => Vector3.Distance(RigTargetPoint(rig), raiderA.transform.position) < 0.5f,
-                "Rig lost lock on A's owned Raider while it moved.");
+                () => NetworkSessionHarness.PlanarDistance(raiderA.transform.position, baselineA) > 3f,
+                "A's Raider stopped before covering the lock-check distance.",
+                15f);
+
+            yield return _harness.WaitUntil(
+                () => Vector3.Distance(RigTargetPoint(rig), raiderA.transform.position) < 0.5f
+                    && Quaternion.Angle(rig.transform.rotation, Quaternion.Euler(RaiderCameraRig.PitchDegrees, 0f, 0f)) < 0.1f,
+                "Rig A lost lock or bent its pitch while A's Raider moved.");
+            yield return _harness.WaitUntil(
+                () => Vector3.Distance(RigTargetPoint(rigB), raiderB.transform.position) < 0.5f,
+                "Rig B lost lock on B's owned Raider while it moved.");
 
             // Spawns sit ~28m apart and the Raiders are diverging.
             Assert.That(
                 NetworkSessionHarness.PlanarDistance(RigTargetPoint(rig), raiderBOnA.transform.position),
                 Is.GreaterThan(10f),
-                "Rig is tracking the remote Raider.");
+                "Rig A is tracking the remote Raider.");
+            Assert.That(
+                NetworkSessionHarness.PlanarDistance(RigTargetPoint(rigB), raiderAOnB.transform.position),
+                Is.GreaterThan(10f),
+                "Rig B is tracking the remote Raider.");
 
             providerA.Intent = default;
             providerB.Intent = default;
@@ -237,20 +278,26 @@ namespace LightRaiders.Tests
         private static Vector3 RigTargetPoint(RaiderCameraRig rig) => rig.transform.position - RaiderCameraRig.FollowOffset;
 
         /// <summary>
-        /// Waits until the transform moves less than a centimeter in one frame,
-        /// so single-sample assertions afterwards are not frame-rate-sensitive.
+        /// Waits until the transform moves less than a centimeter over a fixed
+        /// realtime window, so single-sample assertions afterwards are not
+        /// frame-rate-sensitive. The window matters: a per-frame epsilon would
+        /// trigger mid-motion at very high batchmode frame rates.
         /// </summary>
         private IEnumerator WaitUntilStationary(Transform target)
         {
+            const float WindowSeconds = 0.25f;
             float deadline = Time.realtimeSinceStartup + 10f;
-            Vector3 lastSample = target.position;
+            Vector3 anchor = target.position;
+            float anchorTime = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup < deadline)
             {
                 yield return null;
-                Vector3 sample = target.position;
-                if (Vector3.Distance(sample, lastSample) < 0.01f)
+                if (Time.realtimeSinceStartup - anchorTime < WindowSeconds)
+                    continue;
+                if (Vector3.Distance(target.position, anchor) < 0.01f)
                     yield break;
-                lastSample = sample;
+                anchor = target.position;
+                anchorTime = Time.realtimeSinceStartup;
             }
 
             Assert.Fail("Transform never came to rest (timed out after 10s).");

@@ -293,6 +293,5 @@ namespace LightRaiders.Tests
             if (condition != null)
                 Assert.Fail(failureMessage + " (timed out after " + seconds + "s)");
         }
-
     }
 }
