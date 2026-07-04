@@ -81,11 +81,11 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountRaiders(server.ServerManager.Objects.Spawned) == 1,
                 "Server never saw the Raider spawn.");
             yield return _harness.WaitUntil(
-                () => FindOwnedRaider(client) != null,
+                () => NetworkSessionHarness.FindOwnedRaider(client) != null,
                 "Client never saw its owned Raider.");
 
-            NetworkObject ownedRaider = FindOwnedRaider(client);
-            NetworkObject serverRaider = FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
+            NetworkObject ownedRaider = NetworkSessionHarness.FindOwnedRaider(client);
+            NetworkObject serverRaider = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
             Assert.IsNotNull(serverRaider, "Server view has no instance for the client-owned Raider.");
 
             /* Inject the scripted provider (zero intent) before baselining so the
@@ -94,13 +94,13 @@ namespace LightRaiders.Tests
             ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
 
-            yield return SettleServerRaider(serverRaider);
+            yield return _harness.SettleServerRaider(serverRaider);
             Vector3 baseline = serverRaider.transform.position;
 
             scripted.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
             yield return _harness.WaitUntil(
-                () => PlanarDistance(serverRaider.transform.position, baseline) > 0.5f,
+                () => NetworkSessionHarness.PlanarDistance(serverRaider.transform.position, baseline) > 0.5f,
                 "Server Raider never moved in response to owner intent.");
 
             float y = serverRaider.transform.position.y;
@@ -124,27 +124,27 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountRaiders(clientB.ClientManager.Objects.Spawned) == 2,
                 "Client B never saw both Raiders.");
             yield return _harness.WaitUntil(
-                () => FindOwnedRaider(clientA) != null,
+                () => NetworkSessionHarness.FindOwnedRaider(clientA) != null,
                 "Client A never saw its owned Raider.");
 
-            NetworkObject raiderOnA = FindOwnedRaider(clientA);
-            NetworkObject raiderOnB = FindOnView(clientB.ClientManager.Objects.Spawned, raiderOnA.ObjectId);
+            NetworkObject raiderOnA = NetworkSessionHarness.FindOwnedRaider(clientA);
+            NetworkObject raiderOnB = NetworkSessionHarness.FindOnView(clientB.ClientManager.Objects.Spawned, raiderOnA.ObjectId);
             Assert.IsNotNull(raiderOnB, "Client B's view has no instance of A's Raider.");
-            NetworkObject raiderOnServer = FindOnView(server.ServerManager.Objects.Spawned, raiderOnA.ObjectId);
+            NetworkObject raiderOnServer = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, raiderOnA.ObjectId);
             Assert.IsNotNull(raiderOnServer, "Server view has no instance of A's Raider.");
 
             // Zero-intent injection before baselining; see OwnerIntent_MovesRaiderOnServer.
             ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             raiderOnA.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
 
-            yield return SettleServerRaider(raiderOnServer);
+            yield return _harness.SettleServerRaider(raiderOnServer);
             Vector3 baseline = raiderOnB.transform.position;
 
             scripted.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
             // 15s: 30Hz ticks plus 2-tick interpolation on the observing client.
             yield return _harness.WaitUntil(
-                () => PlanarDistance(raiderOnB.transform.position, baseline) > 0.5f,
+                () => NetworkSessionHarness.PlanarDistance(raiderOnB.transform.position, baseline) > 0.5f,
                 "Client B never observed A's Raider moving.",
                 15f);
         }
@@ -165,17 +165,17 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountRaiders(clientB.ClientManager.Objects.Spawned) == 2,
                 "Client B never saw both Raiders.");
             yield return _harness.WaitUntil(
-                () => FindOwnedRaider(clientA) != null && FindOwnedRaider(clientB) != null,
+                () => NetworkSessionHarness.FindOwnedRaider(clientA) != null && NetworkSessionHarness.FindOwnedRaider(clientB) != null,
                 "Clients never saw their owned Raiders.");
 
-            NetworkObject raiderA = FindOwnedRaider(clientA);
-            NetworkObject raiderAOnServer = FindOnView(server.ServerManager.Objects.Spawned, raiderA.ObjectId);
+            NetworkObject raiderA = NetworkSessionHarness.FindOwnedRaider(clientA);
+            NetworkObject raiderAOnServer = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, raiderA.ObjectId);
             Assert.IsNotNull(raiderAOnServer, "Server view has no instance of A's Raider.");
-            NetworkObject raiderAOnB = FindOnView(clientB.ClientManager.Objects.Spawned, raiderA.ObjectId);
+            NetworkObject raiderAOnB = NetworkSessionHarness.FindOnView(clientB.ClientManager.Objects.Spawned, raiderA.ObjectId);
             Assert.IsNotNull(raiderAOnB, "Client B's view has no instance of A's Raider.");
 
-            NetworkObject raiderB = FindOwnedRaider(clientB);
-            NetworkObject raiderBOnServer = FindOnView(server.ServerManager.Objects.Spawned, raiderB.ObjectId);
+            NetworkObject raiderB = NetworkSessionHarness.FindOwnedRaider(clientB);
+            NetworkObject raiderBOnServer = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, raiderB.ObjectId);
             Assert.IsNotNull(raiderBOnServer, "Server view has no instance of B's Raider.");
 
             /* Neutral scripted providers on both OWNED instances before baselining,
@@ -185,8 +185,8 @@ namespace LightRaiders.Tests
             ScriptedRaiderIntentProvider ownProvider = new ScriptedRaiderIntentProvider();
             raiderB.GetComponent<RaiderMovement>().SetIntentProvider(ownProvider);
 
-            yield return SettleServerRaider(raiderAOnServer);
-            yield return SettleServerRaider(raiderBOnServer);
+            yield return _harness.SettleServerRaider(raiderAOnServer);
+            yield return _harness.SettleServerRaider(raiderBOnServer);
             Vector3 baselineA = raiderAOnServer.transform.position;
 
             /* The component only sends intent when IsOwner, so B's provider on
@@ -201,11 +201,11 @@ namespace LightRaiders.Tests
             ownProvider.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
             yield return _harness.WaitUntil(
-                () => PlanarDistance(raiderBOnServer.transform.position, baselineB) > 0.5f,
+                () => NetworkSessionHarness.PlanarDistance(raiderBOnServer.transform.position, baselineB) > 0.5f,
                 "Positive control failed: B's own Raider never moved on the server.");
 
             Assert.That(
-                PlanarDistance(raiderAOnServer.transform.position, baselineA),
+                NetworkSessionHarness.PlanarDistance(raiderAOnServer.transform.position, baselineA),
                 Is.LessThan(0.1f),
                 "A's Raider moved from a non-owner's intent.");
         }
@@ -223,11 +223,11 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountRaiders(server.ServerManager.Objects.Spawned) == 1,
                 "Server never saw the Raider spawn.");
             yield return _harness.WaitUntil(
-                () => FindOwnedRaider(client) != null,
+                () => NetworkSessionHarness.FindOwnedRaider(client) != null,
                 "Client never saw its owned Raider.");
 
-            NetworkObject ownedRaider = FindOwnedRaider(client);
-            NetworkObject serverRaider = FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
+            NetworkObject ownedRaider = NetworkSessionHarness.FindOwnedRaider(client);
+            NetworkObject serverRaider = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
             Assert.IsNotNull(serverRaider, "Server view has no instance for the client-owned Raider.");
 
             /* Homing intent instead of a constant direction: a constant diagonal
@@ -235,12 +235,12 @@ namespace LightRaiders.Tests
             ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
 
-            yield return SettleServerRaider(serverRaider);
+            yield return _harness.SettleServerRaider(serverRaider);
 
             yield return HomeUntil(
                 scripted,
                 serverRaider.transform,
-                () => PlanarDistance(serverRaider.transform.position, ObstacleCenter) < 2.5f,
+                () => NetworkSessionHarness.PlanarDistance(serverRaider.transform.position, ObstacleCenter) < 2.5f,
                 20f,
                 "Raider never approached the obstacle.");
 
@@ -254,11 +254,11 @@ namespace LightRaiders.Tests
             yield return HomeUntil(scripted, serverRaider.transform, null, 1.5f, null);
 
             Assert.That(
-                PlanarDistance(serverRaider.transform.position, snapshot),
+                NetworkSessionHarness.PlanarDistance(serverRaider.transform.position, snapshot),
                 Is.LessThan(0.5f),
                 "Raider kept moving while pushing into the obstacle.");
             Assert.That(
-                PlanarDistance(serverRaider.transform.position, ObstacleCenter),
+                NetworkSessionHarness.PlanarDistance(serverRaider.transform.position, ObstacleCenter),
                 Is.GreaterThan(1.2f),
                 "Raider penetrated the obstacle.");
             float y = serverRaider.transform.position.y;
@@ -292,38 +292,6 @@ namespace LightRaiders.Tests
 
             if (condition != null)
                 Assert.Fail(failureMessage + " (timed out after " + seconds + "s)");
-        }
-
-        private static NetworkObject FindOwnedRaider(NetworkManager clientNetworkManager)
-        {
-            foreach (NetworkObject networkObject in clientNetworkManager.ClientManager.Objects.Spawned.Values)
-            {
-                if (networkObject != null && networkObject.IsOwner && networkObject.GetComponent<Raider>() != null)
-                    return networkObject;
-            }
-
-            return null;
-        }
-
-        private static NetworkObject FindOnView(IReadOnlyDictionary<int, NetworkObject> spawned, int objectId)
-        {
-            return spawned.TryGetValue(objectId, out NetworkObject networkObject) ? networkObject : null;
-        }
-
-        private static float PlanarDistance(Vector3 a, Vector3 b)
-        {
-            return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
-        }
-
-        /// <summary>
-        /// Waits for gravity to settle the server-side capsule onto the floor so
-        /// baselines taken afterwards are never polluted by the initial fall.
-        /// </summary>
-        private IEnumerator SettleServerRaider(NetworkObject serverRaider)
-        {
-            yield return _harness.WaitUntil(
-                () => serverRaider.transform.position.y < 0.5f,
-                "Server Raider never settled onto the floor.");
         }
     }
 }

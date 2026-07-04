@@ -12,8 +12,9 @@ namespace LightRaiders.Editor
 {
     /// <summary>
     /// Generates (or regenerates) the bootstrap arena scene with the networked
-    /// session objects wired up. Idempotent: reruns rebuild the Arena and
-    /// NetworkSession roots in place.
+    /// session objects wired up. Idempotent: reruns rebuild the Arena,
+    /// NetworkSession and RaiderCameraRig roots in place (and drop the scene
+    /// template's default camera).
     /// </summary>
     public static class ArenaSceneGenerator
     {
@@ -21,6 +22,10 @@ namespace LightRaiders.Editor
          * down scene roots by these names before the rebuild recreates them. */
         private const string ArenaRootName = "Arena";
         private const string NetworkSessionRootName = "NetworkSession";
+        private const string RaiderCameraRigName = "RaiderCameraRig";
+        /* The default from NewSceneSetup.DefaultGameObjects, destroyed once the
+         * generator-owned rig replaces it; "Directional Light" deliberately kept. */
+        private const string DefaultCameraName = "Main Camera";
 
         /// <summary>
         /// Generates the Raider prefab and the bootstrap arena scene.
@@ -42,15 +47,20 @@ namespace LightRaiders.Editor
                 EditorSceneManager.SaveScene(scene, SessionAssetPaths.BootstrapArenaScene);
             }
 
-            // Idempotency: tear down previously generated roots before rebuilding.
+            /* Idempotency: tear down previously generated roots before rebuilding.
+             * The default camera falls under the sweep too, so both scene branches
+             * converge and a committed scene loses its stale default camera on the
+             * next regeneration. */
             foreach (GameObject rootGo in scene.GetRootGameObjects())
             {
-                if (rootGo.name == ArenaRootName || rootGo.name == NetworkSessionRootName)
+                if (rootGo.name == ArenaRootName || rootGo.name == NetworkSessionRootName
+                    || rootGo.name == RaiderCameraRigName || rootGo.name == DefaultCameraName)
                     Object.DestroyImmediate(rootGo);
             }
 
             Transform[] spawnPoints = BuildArena();
-            BuildNetworkSession(spawnPoints);
+            NetworkManager networkManager = BuildNetworkSession(spawnPoints);
+            BuildCameraRig(networkManager);
 
             /* Build-settings registration is deliberately unnecessary: editor and MPPM
              * play modes use the currently open scene, and there are no standalone builds yet. */
@@ -118,7 +128,7 @@ namespace LightRaiders.Editor
             return spawnPoints;
         }
 
-        private static void BuildNetworkSession(Transform[] spawnPoints)
+        private static NetworkManager BuildNetworkSession(Transform[] spawnPoints)
         {
             GameObject session = new GameObject(NetworkSessionRootName);
 
@@ -150,6 +160,25 @@ namespace LightRaiders.Editor
 
             EditorUtility.SetDirty(networkManager);
             EditorUtility.SetDirty(spawner);
+
+            return networkManager;
+        }
+
+        private static void BuildCameraRig(NetworkManager networkManager)
+        {
+            GameObject rigGo = new GameObject(RaiderCameraRigName);
+            // Sole camera and sole AudioListener: the sweep removed the scene default.
+            rigGo.tag = "MainCamera";
+            /* Edit-mode pose from the component's own constants (Awake only runs in
+             * play mode): as if following a Raider at the arena origin. */
+            rigGo.transform.SetPositionAndRotation(
+                RaiderCameraRig.FollowOffset,
+                Quaternion.Euler(RaiderCameraRig.PitchDegrees, 0f, 0f));
+            rigGo.AddComponent<Camera>();
+            rigGo.AddComponent<AudioListener>();
+            RaiderCameraRig rig = rigGo.AddComponent<RaiderCameraRig>();
+            rig.SetNetworkManager(networkManager);
+            EditorUtility.SetDirty(rig);
         }
     }
 }
