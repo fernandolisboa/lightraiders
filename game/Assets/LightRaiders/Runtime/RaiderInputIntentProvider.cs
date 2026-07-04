@@ -13,6 +13,7 @@ namespace LightRaiders
         private InputActionAsset _actions;
 
         private InputAction _moveAction;
+        private InputAction _attackAction;
         private Camera _camera;
 
         public RaiderIntent GetIntent()
@@ -28,11 +29,21 @@ namespace LightRaiders
                 _moveAction.Enable();
             }
 
+            if (_attackAction == null)
+            {
+                _attackAction = _actions.FindAction("Player/Attack", throwIfNotFound: true);
+                _attackAction.Enable();
+            }
+
             return new RaiderIntent
             {
                 Move = _moveAction.ReadValue<Vector2>(),
                 AimPoint = ComputeAimPoint(),
-                // FirePressed stays default until issue #6.
+                /* Level semantics (IsPressed), not WasPressedThisFrame: GetIntent runs on
+                 * the network tick, not Update - frame-scoped edge queries drop presses
+                 * when tick rate < frame rate and double-report when tick rate > frame
+                 * rate. The server cooldown owns the fire rate (PRD: level-state at 30Hz). */
+                FirePressed = _attackAction.IsPressed(),
             };
         }
 
@@ -64,6 +75,7 @@ namespace LightRaiders
         private void OnDestroy()
         {
             _moveAction?.Disable();
+            _attackAction?.Disable();
         }
     }
 }

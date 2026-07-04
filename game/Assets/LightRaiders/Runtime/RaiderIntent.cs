@@ -4,7 +4,8 @@ namespace LightRaiders
 {
     /// <summary>
     /// Planar intent per ADR-0001: Move.x maps to world X, Move.y to world Z.
-    /// FirePressed is carried but unconsumed until issue #6.
+    /// FirePressed is level-state: true on every tick the fire control is held;
+    /// the server's per-Raider cooldown (RaiderWeapon) owns the fire rate.
     /// </summary>
     public struct RaiderIntent
     {
