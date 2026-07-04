@@ -60,9 +60,9 @@ namespace LightRaiders
         }
 
         /* RequireOwnership defaults to true, so non-owner sends are dropped
-         * server-side. The trailing Channel parameter selects unreliable: a
-         * dropped packet costs one tick of staleness because intents persist
-         * and resend every tick. */
+         * server-side. The trailing Channel parameter selects unreliable
+         * (unordered): drops or reordering cost at most a tick or two of stale
+         * intent because intents persist and resend every tick. */
         [ServerRpc]
         private void ServerRpcSendIntent(RaiderIntent intent, Channel channel = Channel.Unreliable)
         {
@@ -76,9 +76,12 @@ namespace LightRaiders
             if (_controller == null || !_controller.enabled)
                 return;
 
-            // The server never trusts the client-supplied magnitude.
+            /* The server never trusts client-supplied values: non-finite input
+             * is discarded (NaN passes a "> 1f" check) and magnitude is clamped. */
             Vector2 move = _lastReceivedIntent.Move;
-            if (move.sqrMagnitude > 1f)
+            if (!float.IsFinite(move.x) || !float.IsFinite(move.y))
+                move = Vector2.zero;
+            else if (move.sqrMagnitude > 1f)
                 move.Normalize();
 
             _verticalVelocity = _controller.isGrounded

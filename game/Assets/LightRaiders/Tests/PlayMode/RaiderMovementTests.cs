@@ -17,6 +17,8 @@ namespace LightRaiders.Tests
     [TestFixture]
     public class RaiderMovementTests
     {
+        /* Deliberately mirrors ArenaSceneGenerator's Obstacle1 dimensions, but the
+         * obstacle here is built locally by the fixture — no sync required. */
         private static readonly Vector3 ObstacleCenter = new Vector3(6f, 1f, 4f);
 
         private NetworkSessionHarness _harness;
@@ -86,12 +88,16 @@ namespace LightRaiders.Tests
             NetworkObject serverRaider = FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
             Assert.IsNotNull(serverRaider, "Server view has no instance for the client-owned Raider.");
 
+            /* Inject the scripted provider (zero intent) before baselining so the
+             * prefab's hardware provider never feeds real keyboard state into a
+             * non-batch editor run. */
+            ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
+            ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
+
             yield return SettleServerRaider(serverRaider);
             Vector3 baseline = serverRaider.transform.position;
 
-            ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             scripted.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
-            ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
 
             yield return _harness.WaitUntil(
                 () => PlanarDistance(serverRaider.transform.position, baseline) > 0.5f,
@@ -127,12 +133,14 @@ namespace LightRaiders.Tests
             NetworkObject raiderOnServer = FindOnView(server.ServerManager.Objects.Spawned, raiderOnA.ObjectId);
             Assert.IsNotNull(raiderOnServer, "Server view has no instance of A's Raider.");
 
+            // Zero-intent injection before baselining; see OwnerIntent_MovesRaiderOnServer.
+            ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
+            raiderOnA.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
+
             yield return SettleServerRaider(raiderOnServer);
             Vector3 baseline = raiderOnB.transform.position;
 
-            ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             scripted.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
-            raiderOnA.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
 
             // 15s: 30Hz ticks plus 2-tick interpolation on the observing client.
             yield return _harness.WaitUntil(
@@ -170,6 +178,13 @@ namespace LightRaiders.Tests
             NetworkObject raiderBOnServer = FindOnView(server.ServerManager.Objects.Spawned, raiderB.ObjectId);
             Assert.IsNotNull(raiderBOnServer, "Server view has no instance of B's Raider.");
 
+            /* Neutral scripted providers on both OWNED instances before baselining,
+             * so neither polls the prefab's hardware provider during the test. */
+            ScriptedRaiderIntentProvider neutralProviderA = new ScriptedRaiderIntentProvider();
+            raiderA.GetComponent<RaiderMovement>().SetIntentProvider(neutralProviderA);
+            ScriptedRaiderIntentProvider ownProvider = new ScriptedRaiderIntentProvider();
+            raiderB.GetComponent<RaiderMovement>().SetIntentProvider(ownProvider);
+
             yield return SettleServerRaider(raiderAOnServer);
             yield return SettleServerRaider(raiderBOnServer);
             Vector3 baselineA = raiderAOnServer.transform.position;
@@ -182,10 +197,8 @@ namespace LightRaiders.Tests
             raiderAOnB.GetComponent<RaiderMovement>().SetIntentProvider(hostileProvider);
 
             // Positive control: B moves its own Raider, proving ticks/RPCs flow.
-            ScriptedRaiderIntentProvider ownProvider = new ScriptedRaiderIntentProvider();
-            ownProvider.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
             Vector3 baselineB = raiderBOnServer.transform.position;
-            raiderB.GetComponent<RaiderMovement>().SetIntentProvider(ownProvider);
+            ownProvider.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
             yield return _harness.WaitUntil(
                 () => PlanarDistance(raiderBOnServer.transform.position, baselineB) > 0.5f,
@@ -217,12 +230,12 @@ namespace LightRaiders.Tests
             NetworkObject serverRaider = FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
             Assert.IsNotNull(serverRaider, "Server view has no instance for the client-owned Raider.");
 
-            yield return SettleServerRaider(serverRaider);
-
             /* Homing intent instead of a constant direction: a constant diagonal
              * would slide along the cube face instead of stalling against it. */
             ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
+
+            yield return SettleServerRaider(serverRaider);
 
             yield return HomeUntil(
                 scripted,
@@ -231,7 +244,12 @@ namespace LightRaiders.Tests
                 20f,
                 "Raider never approached the obstacle.");
 
-            // Homing converges perpendicular to the face, so this is a genuine stall.
+            /* The proximity gate above fires in free flight, ~0.6m before first
+             * contact, and the slide along the face covers another ~1m. Keep
+             * homing for a fixed convergence window so the snapshot below is
+             * taken AFTER the raider has stalled perpendicular to the face. */
+            yield return HomeUntil(scripted, serverRaider.transform, null, 2f, null);
+
             Vector3 snapshot = serverRaider.transform.position;
             yield return HomeUntil(scripted, serverRaider.transform, null, 1.5f, null);
 
