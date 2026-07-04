@@ -19,6 +19,8 @@
    Do instead: agents write all code/config; give click-level Editor steps for GUI-only work; never assign tutorials or "go learn X"; if AI-driven dev stalls, say so plainly — his stated fallback is stopping the project, not classes.
 6. **[2026-07-02] No commit/push/PR ceremony — git is autonomous (supersedes the kickoff-era "commits only with go-ahead" rule in earlier handoffs)**
    Do instead: commit and push completed work without asking; run the CLAUDE.md per-issue 8-step flow end to end, including PR merge and issue close when green; confirm only genuinely destructive/irreversible ops (history rewrite, force-push, deleting remote branches).
+7. **[2026-07-04] Batch HITL — no playtest stops for small increments ("I trust your testing for the smaller things")**
+   Do instead: run issues end-to-end on green tests and ask for the merge OK without waiting for a playtest; accumulate manual verification into one milestone-sized playtest (e.g. Phase 0's #7 acceptance); interrupt only for milestone-scale observable changes or genuine blockers.
 
 ## Domain Behavior Guardrails
 1. **[2026-07-02] CONTEXT.md glossary is law**

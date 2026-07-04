@@ -15,6 +15,7 @@ namespace LightRaiders.Editor
         public const string RaiderPrefab = PrefabsFolder + "/Raider.prefab";
         public const string BootstrapArenaScene = ScenesFolder + "/BootstrapArena.unity";
         public const string RaiderMaterial = MaterialsFolder + "/Raider.mat";
+        public const string AimIndicatorMaterial = MaterialsFolder + "/AimIndicator.mat";
         public const string ArenaFloorMaterial = MaterialsFolder + "/ArenaFloor.mat";
         public const string ArenaObstacleMaterial = MaterialsFolder + "/ArenaObstacle.mat";
 

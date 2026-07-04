@@ -151,6 +151,16 @@ namespace LightRaiders.Tests
         }
 
         /// <summary>
+        /// Angle in degrees between two directions projected onto the ground plane.
+        /// Callers must pass non-degenerate directions (unit forwards / >=10m
+        /// offsets): Vector2.Angle returns 0 for zero vectors.
+        /// </summary>
+        public static float PlanarAngle(Vector3 a, Vector3 b)
+        {
+            return Vector2.Angle(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+        }
+
+        /// <summary>
         /// Waits for gravity to settle the server-side capsule onto the floor so
         /// baselines taken afterwards are never polluted by the initial fall.
         /// </summary>

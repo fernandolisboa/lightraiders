@@ -13,6 +13,7 @@ namespace LightRaiders
         private InputActionAsset _actions;
 
         private InputAction _moveAction;
+        private Camera _camera;
 
         public RaiderIntent GetIntent()
         {
@@ -30,10 +31,34 @@ namespace LightRaiders
             return new RaiderIntent
             {
                 Move = _moveAction.ReadValue<Vector2>(),
-                /* AimPoint/FirePressed stay default until issues #5/#6; the Look
-                 * action is a relative pointer delta, unsuitable for an absolute
-                 * aim point. */
+                AimPoint = ComputeAimPoint(),
+                // FirePressed stays default until issue #6.
             };
+        }
+
+        /* Direct device read instead of an input action: Player/Look is a relative
+         * pointer delta (unsuitable for an absolute aim point), and UI/Point belongs
+         * to the UI map. Bypasses control schemes/rebinding - acceptable for Phase 0
+         * mouse-only aim; a dedicated Player/Aim action can supersede this later. */
+        private Vector3 ComputeAimPoint()
+        {
+            /* Sentinel fallback: the server discards non-finite aim points and keeps
+             * the current facing, which is the true neutral even while moving.
+             * (transform.position would drift past the server epsilon on the owner's
+             * interpolated view; Vector3.zero is a real world point.) */
+            Vector3 fallback = new Vector3(float.NaN, 0f, float.NaN);
+
+            if (Mouse.current == null) // headless/batchmode: no mouse device
+                return fallback;
+
+            if (_camera == null) // lazy + Unity-null recheck: survives camera recreation
+                _camera = Camera.main;
+            if (_camera == null)
+                return fallback;
+
+            Ray ray = _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
+            Plane groundPlane = new Plane(Vector3.up, 0f);
+            return groundPlane.Raycast(ray, out float enter) ? ray.GetPoint(enter) : fallback;
         }
 
         private void OnDestroy()

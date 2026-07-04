@@ -20,6 +20,7 @@ namespace LightRaiders.Editor
             SessionAssetPaths.EnsureAllFolders();
 
             Material material = CreateOrUpdateMaterial(SessionAssetPaths.RaiderMaterial, new Color(0.10f, 0.75f, 0.70f));
+            Material indicatorMaterial = CreateOrUpdateMaterial(SessionAssetPaths.AimIndicatorMaterial, new Color(0.95f, 0.45f, 0.10f));
 
             GameObject root = new GameObject("Raider");
             root.AddComponent<NetworkObject>();
@@ -33,6 +34,20 @@ namespace LightRaiders.Editor
              * child collider would make the CC sweep ghost-collide against itself. */
             Object.DestroyImmediate(visual.GetComponent<CapsuleCollider>());
             visual.GetComponent<Renderer>().sharedMaterial = material;
+
+            /* Graybox aim indicator: a bar along local +Z (= transform.forward) so the
+             * server-set facing is readable on every client. NetworkTransform replicates
+             * the ROOT rotation; children ride along rigidly. Spans local z 0.5..1.3:
+             * flush with the capsule surface, protruding 0.8 at mid-height. */
+            GameObject indicator = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            indicator.name = "AimIndicator";
+            indicator.transform.SetParent(root.transform);
+            indicator.transform.localPosition = new Vector3(0f, 1f, 0.9f);
+            indicator.transform.localScale = new Vector3(0.15f, 0.15f, 0.8f);
+            /* Same rule as Visual: the root CharacterController is the sole collider -
+             * a Cube primitive ships a BoxCollider, not a CapsuleCollider. */
+            Object.DestroyImmediate(indicator.GetComponent<BoxCollider>());
+            indicator.GetComponent<Renderer>().sharedMaterial = indicatorMaterial;
 
             // Matches the visual capsule (2 units tall, 0.5 radius, centered at y=1).
             CharacterController controller = root.AddComponent<CharacterController>();
