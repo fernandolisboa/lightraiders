@@ -53,3 +53,5 @@
    Do instead: use `gh` CLI for issues/labels; issue workflow and label vocabulary live in `docs/agents/`.
 4. **[2026-07-02] LFS rules predate binaries by design**
    Do instead: `.gitattributes` at repo root already tracks art/audio/model formats; run `git lfs install` once per machine clone before adding any binary.
+5. **[2026-07-04] Unity Editor MCP is broken on this machine — signature-validation bug (Unity 6000.3.19 reports "NAVER Global Root" / invalid for validly-signed binaries, including Unity's own relay_win.exe); connections auto-revoke even after user approval. User gave up on it.**
+   Do instead: don't retry the MCP tools each session; read `%LOCALAPPDATA%\Unity\Editor\Editor.log` for console output and use the CLI batch runs in `docs/testing.md` (editor closed) for compile/test truth; revisit only after an editor upgrade.
