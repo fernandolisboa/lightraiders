@@ -6,8 +6,10 @@ using FishNet.Managing;
 using FishNet.Managing.Object;
 using FishNet.Object;
 using FishNet.Transporting.Tugboat;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -64,9 +66,21 @@ namespace LightRaiders.Tests
             Tugboat tugboat = go.AddComponent<Tugboat>();
             tugboat.SetPort(_port);
 
+            /* In the editor, AddComponent synchronously fires FishNet's
+             * OnValidate -> Reset -> ValidateSpawnablePrefabs BEFORE the harness
+             * can assign SpawnablePrefabs below, and in play mode that logs one
+             * error. Declare it expected so the runner doesn't fail the test;
+             * the real assignment happens before activation, so Awake passes. */
+            LogAssert.Expect(LogType.Error, new Regex("SpawnablePrefabs is null"));
             NetworkManager networkManager = go.AddComponent<NetworkManager>();
 
 #if UNITY_EDITOR
+            /* Must be assigned before activation (a null SpawnablePrefabs in play
+             * mode is a hard error that aborts NetworkManager initialization) and
+             * before the SerializedObject edits below, whose apply re-triggers
+             * OnValidate and would log the same null-SpawnablePrefabs error again. */
+            networkManager.SpawnablePrefabs = AssetDatabase.LoadAssetAtPath<DefaultPrefabObjects>(DefaultPrefabObjectsPath);
+
             /* Inspector-equivalent arrangement: allow several NetworkManagers to
              * coexist during a test and keep them scene-bound for easy teardown. */
             SerializedObject serializedManager = new SerializedObject(networkManager);
@@ -77,10 +91,6 @@ namespace LightRaiders.Tests
             Assert.IsNotNull(dontDestroyOnLoad, "FishNet renamed serialized field '_dontDestroyOnLoad' — update NetworkSessionHarness.");
             dontDestroyOnLoad.boolValue = false;
             serializedManager.ApplyModifiedPropertiesWithoutUndo();
-
-            /* Must be assigned before activation: a null SpawnablePrefabs in play
-             * mode is a hard error that aborts NetworkManager initialization. */
-            networkManager.SpawnablePrefabs = AssetDatabase.LoadAssetAtPath<DefaultPrefabObjects>(DefaultPrefabObjectsPath);
 #endif
 
             if (withSpawner)
