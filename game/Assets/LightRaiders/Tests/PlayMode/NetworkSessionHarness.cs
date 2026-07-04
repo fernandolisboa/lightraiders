@@ -44,7 +44,7 @@ namespace LightRaiders.Tests
             _nextPort++;
         }
 
-        public NetworkManager CreateNetworkManager(bool withSpawner)
+        public NetworkManager CreateNetworkManager(bool withSpawner, Transform[] spawns = null)
         {
             /* Resolve the Raider prefab BEFORE creating any GameObject: failing
              * afterwards would leak an inactive manager object that teardown
@@ -97,6 +97,8 @@ namespace LightRaiders.Tests
             {
                 PlayerSpawner spawner = go.AddComponent<PlayerSpawner>();
                 spawner.SetPlayerPrefab(raiderPrefab);
+                if (spawns != null)
+                    spawner.Spawns = spawns;
             }
 
             go.SetActive(true);
