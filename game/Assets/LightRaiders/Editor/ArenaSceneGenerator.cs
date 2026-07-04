@@ -34,6 +34,9 @@ namespace LightRaiders.Editor
         [MenuItem("Light Raiders/Generate Session Assets")]
         public static void GenerateAll()
         {
+            /* Projectile before Raider: RaiderPrefabGenerator wires a serialized
+             * reference to the Projectile prefab asset and fail-fasts if it is absent. */
+            ProjectilePrefabGenerator.Generate();
             RaiderPrefabGenerator.Generate();
 
             Scene scene;

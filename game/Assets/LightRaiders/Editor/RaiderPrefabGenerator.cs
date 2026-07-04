@@ -57,6 +57,7 @@ namespace LightRaiders.Editor
 
             AddInputIntentProvider(root);
             root.AddComponent<RaiderMovement>();
+            AddWeapon(root);
             AddNetworkTransform(root);
 
             PrefabUtility.SaveAsPrefabAsset(root, SessionAssetPaths.RaiderPrefab);
@@ -90,6 +91,25 @@ namespace LightRaiders.Editor
                     "RaiderInputIntentProvider renamed serialized field '_actions' — update RaiderPrefabGenerator.");
             actionsProperty.objectReferenceValue = actions;
             serializedProvider.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AddWeapon(GameObject root)
+        {
+            RaiderWeapon weapon = root.AddComponent<RaiderWeapon>();
+
+            NetworkObject projectilePrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.ProjectilePrefab);
+            if (projectilePrefab == null)
+                throw new InvalidOperationException(
+                    "Projectile prefab missing at '" + SessionAssetPaths.ProjectilePrefab +
+                    "' — ProjectilePrefabGenerator.Generate() must run first (-executeMethod exits 0 on silent partial success).");
+
+            SerializedObject serializedWeapon = new SerializedObject(weapon);
+            SerializedProperty prefabProperty = serializedWeapon.FindProperty("_projectilePrefab");
+            if (prefabProperty == null)
+                throw new InvalidOperationException(
+                    "RaiderWeapon renamed serialized field '_projectilePrefab' — update RaiderPrefabGenerator.");
+            prefabProperty.objectReferenceValue = projectilePrefab;
+            serializedWeapon.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AddNetworkTransform(GameObject root)
