@@ -4,7 +4,7 @@ namespace LightRaiders
 {
     /// <summary>
     /// Planar intent per ADR-0001: Move.x maps to world X, Move.y to world Z.
-    /// AimPoint and FirePressed are carried but unconsumed until issues #5/#6.
+    /// FirePressed is carried but unconsumed until issue #6.
     /// </summary>
     public struct RaiderIntent
     {
