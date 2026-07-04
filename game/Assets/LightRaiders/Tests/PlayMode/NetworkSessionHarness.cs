@@ -198,7 +198,6 @@ namespace LightRaiders.Tests
         /// Waits until the server's TimeManager has advanced by the given tick
         /// count, guaranteeing the current intent was actually processed that
         /// many times (wall-clock waits cannot guarantee any tick ran).
-        /// Promoted from RaiderAimTests.
         /// </summary>
         public IEnumerator WaitForServerTicks(NetworkManager server, uint tickCount)
         {
