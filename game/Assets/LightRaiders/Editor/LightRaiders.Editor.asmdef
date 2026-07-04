@@ -1,0 +1,19 @@
+{
+    "name": "LightRaiders.Editor",
+    "rootNamespace": "LightRaiders.Editor",
+    "references": [
+        "LightRaiders.Runtime",
+        "FishNet.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
