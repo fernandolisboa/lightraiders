@@ -129,6 +129,38 @@ namespace LightRaiders.Tests
             return count;
         }
 
+        public static NetworkObject FindOwnedRaider(NetworkManager clientNetworkManager)
+        {
+            foreach (NetworkObject networkObject in clientNetworkManager.ClientManager.Objects.Spawned.Values)
+            {
+                if (networkObject != null && networkObject.IsOwner && networkObject.GetComponent<Raider>() != null)
+                    return networkObject;
+            }
+
+            return null;
+        }
+
+        public static NetworkObject FindOnView(IReadOnlyDictionary<int, NetworkObject> spawned, int objectId)
+        {
+            return spawned.TryGetValue(objectId, out NetworkObject networkObject) ? networkObject : null;
+        }
+
+        public static float PlanarDistance(Vector3 a, Vector3 b)
+        {
+            return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+        }
+
+        /// <summary>
+        /// Waits for gravity to settle the server-side capsule onto the floor so
+        /// baselines taken afterwards are never polluted by the initial fall.
+        /// </summary>
+        public IEnumerator SettleServerRaider(NetworkObject serverRaider)
+        {
+            yield return WaitUntil(
+                () => serverRaider.transform.position.y < 0.5f,
+                "Server Raider never settled onto the floor.");
+        }
+
         public IEnumerator Teardown()
         {
             for (int i = _createdManagers.Count - 1; i >= 0; i--)
