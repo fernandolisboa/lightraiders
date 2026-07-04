@@ -2,7 +2,8 @@
     "name": "LightRaiders.Runtime",
     "rootNamespace": "LightRaiders",
     "references": [
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

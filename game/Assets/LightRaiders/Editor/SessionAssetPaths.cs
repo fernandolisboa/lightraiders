@@ -24,6 +24,11 @@ namespace LightRaiders.Editor
         public const string DefaultPrefabObjects = "Assets/DefaultPrefabObjects.asset";
 
         /// <summary>
+        /// Project-wide Input System action asset created by the Unity template.
+        /// </summary>
+        public const string InputActions = "Assets/InputSystem_Actions.inputactions";
+
+        /// <summary>
         /// Creates the folder under parent if it does not already exist.
         /// </summary>
         public static void EnsureFolder(string parent, string name)

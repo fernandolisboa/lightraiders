@@ -3,7 +3,8 @@
     "rootNamespace": "LightRaiders.Editor",
     "references": [
         "LightRaiders.Runtime",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"
