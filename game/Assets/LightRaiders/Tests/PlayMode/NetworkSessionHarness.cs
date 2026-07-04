@@ -50,6 +50,7 @@ namespace LightRaiders.Tests
 
             NetworkManager networkManager = go.AddComponent<NetworkManager>();
 
+#if UNITY_EDITOR
             /* Inspector-equivalent arrangement: allow several NetworkManagers to
              * coexist during a test and keep them scene-bound for easy teardown. */
             SerializedObject serializedManager = new SerializedObject(networkManager);
@@ -57,7 +58,6 @@ namespace LightRaiders.Tests
             serializedManager.FindProperty("_dontDestroyOnLoad").boolValue = false;
             serializedManager.ApplyModifiedPropertiesWithoutUndo();
 
-#if UNITY_EDITOR
             /* Must be assigned before activation: a null SpawnablePrefabs in play
              * mode is a hard error that aborts NetworkManager initialization. */
             networkManager.SpawnablePrefabs = AssetDatabase.LoadAssetAtPath<DefaultPrefabObjects>(DefaultPrefabObjectsPath);
