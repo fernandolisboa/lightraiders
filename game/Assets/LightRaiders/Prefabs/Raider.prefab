@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6903384982877733029}
   - component: {fileID: 606983938391514158}
   - component: {fileID: 2399595586216106844}
+  - component: {fileID: 5139012874331633724}
   - component: {fileID: 3639878032733199195}
   m_Layer: 0
   m_Name: Raider
@@ -161,6 +162,22 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 5419409513940672673}
   _networkObjectCache: {fileID: 0}
+--- !u!114 &5139012874331633724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 144569332420392933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a50ea9bd83c48149b7c461c85777183, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.RaiderWeapon
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5419409513940672673}
+  _networkObjectCache: {fileID: 0}
+  _projectilePrefab: {fileID: 3883045231513322241, guid: 3cf837e9a08924a4687a1e320b66c66d, type: 3}
 --- !u!114 &3639878032733199195
 MonoBehaviour:
   m_ObjectHideFlags: 0

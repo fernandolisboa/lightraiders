@@ -145,6 +145,29 @@ namespace LightRaiders.Tests
             return spawned.TryGetValue(objectId, out NetworkObject networkObject) ? networkObject : null;
         }
 
+        public static int CountProjectiles(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            int count = 0;
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Projectile>() != null)
+                    count++;
+            }
+
+            return count;
+        }
+
+        public static NetworkObject FindProjectile(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Projectile>() != null)
+                    return networkObject;
+            }
+
+            return null;
+        }
+
         public static float PlanarDistance(Vector3 a, Vector3 b)
         {
             return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
@@ -169,6 +192,19 @@ namespace LightRaiders.Tests
             yield return WaitUntil(
                 () => serverRaider.transform.position.y < 0.5f,
                 "Server Raider never settled onto the floor.");
+        }
+
+        /// <summary>
+        /// Waits until the server's TimeManager has advanced by the given tick
+        /// count, guaranteeing the current intent was actually processed that
+        /// many times (wall-clock waits cannot guarantee any tick ran).
+        /// </summary>
+        public IEnumerator WaitForServerTicks(NetworkManager server, uint tickCount)
+        {
+            uint targetTick = server.TimeManager.Tick + tickCount;
+            yield return WaitUntil(
+                () => server.TimeManager.Tick >= targetTick,
+                "Server ticks never advanced.");
         }
 
         public IEnumerator Teardown()

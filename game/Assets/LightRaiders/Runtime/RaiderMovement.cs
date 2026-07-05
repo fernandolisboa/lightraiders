@@ -21,6 +21,7 @@ namespace LightRaiders
 
         private CharacterController _controller;
         private IRaiderIntentProvider _intentProvider;
+        private RaiderWeapon _weapon;
 
         /* AimPoint starts as the NaN sentinel, not default(Vector3): zero is a
          * VALID world point and would snap every freshly spawned Raider to face
@@ -66,11 +67,17 @@ namespace LightRaiders
 
             if (IsServerInitialized)
             {
-                /* Facing before motion for readability only: motion is world-space
-                 * (ADR-0001 decoupling), and NetworkTransform samples at tick end,
-                 * so the order is immaterial. */
+                /* Facing before motion for readability only (ADR-0001 decoupling;
+                 * NetworkTransform samples at tick end). Fire runs LAST: it consumes
+                 * the fully updated tick state, so the projectile originates exactly
+                 * where clients will see the shooter this tick. */
                 ApplyFacingOnServer();
                 MoveOnServer((float)base.TimeManager.TickDelta);
+
+                // Lazy lookup + null tolerance mirror _intentProvider: old test rigs without a weapon stay valid.
+                _weapon ??= GetComponent<RaiderWeapon>();
+                if (_weapon != null)
+                    _weapon.TryFireOnServer(_lastReceivedIntent.FirePressed);
             }
         }
 

@@ -132,14 +132,14 @@ namespace LightRaiders.Tests
              * stall could consume a realtime window before any tick processed the
              * bad intent, letting the assert pass vacuously. */
             scripted.Intent = new RaiderIntent { AimPoint = new Vector3(float.NaN, 0f, float.NaN) };
-            yield return WaitForServerTicks(server, 15);
+            yield return _harness.WaitForServerTicks(server, 15);
             Assert.That(
                 NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, secondAim - basePos),
                 Is.LessThan(5f),
                 "Non-finite AimPoint changed facing.");
 
             scripted.Intent = new RaiderIntent { AimPoint = serverRaider.transform.position };
-            yield return WaitForServerTicks(server, 15);
+            yield return _harness.WaitForServerTicks(server, 15);
             Assert.That(
                 NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, secondAim - basePos),
                 Is.LessThan(5f),
@@ -259,19 +259,6 @@ namespace LightRaiders.Tests
                 Mathf.Abs(serverRaider.transform.position.z - basePos.z),
                 Is.LessThan(0.5f),
                 "Travel deviated from +X - motion steered by facing.");
-        }
-
-        /// <summary>
-        /// Waits until the server's TimeManager has advanced by the given tick
-        /// count, guaranteeing the current intent was actually processed that
-        /// many times (wall-clock waits cannot guarantee any tick ran).
-        /// </summary>
-        private IEnumerator WaitForServerTicks(NetworkManager server, uint tickCount)
-        {
-            uint targetTick = server.TimeManager.Tick + tickCount;
-            yield return _harness.WaitUntil(
-                () => server.TimeManager.Tick >= targetTick,
-                "Server ticks never advanced.");
         }
     }
 }
