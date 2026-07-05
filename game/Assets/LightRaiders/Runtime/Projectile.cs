@@ -6,10 +6,12 @@ namespace LightRaiders
 {
     /// <summary>
     /// Server-simulated projectile: travels a flat straight line along its
-    /// spawn facing at constant speed and despawns when its lifetime expires.
-    /// Pure clients never simulate it - OnStartServer never runs there, so the
-    /// tick handler is never subscribed; NetworkTransform replicates the
-    /// server transform and FishNet's despawn message destroys it everywhere.
+    /// spawn facing at constant speed and despawns when either its per-tick
+    /// segment sweep first hits world geometry (arena floor, walls, obstacles)
+    /// or its lifetime expires - whichever comes first. Pure clients never
+    /// simulate it - OnStartServer never runs there, so the tick handler is
+    /// never subscribed; NetworkTransform replicates the server transform and
+    /// FishNet's despawn message destroys it everywhere.
     /// </summary>
     public sealed class Projectile : NetworkBehaviour
     {
@@ -22,6 +24,14 @@ namespace LightRaiders
         public uint SpawnTick { get; private set; }
 
         private uint _despawnAtTick;
+
+        /* Reused across every projectile's per-tick cast. The sweep runs only in
+         * the server OnTick handler (single-threaded, one instance at a time
+         * per invocation), so one shared buffer is safe and keeps the hot path
+         * allocation-free. 16 is far above the collider count any 0.4 m segment
+         * crosses in this arena; a saturated buffer would only risk missing a
+         * FARTHER hit, never the nearest, which is the one that consumes the shot. */
+        private static readonly RaycastHit[] _sweepHits = new RaycastHit[16];
 
         /// <summary>Single source of truth for lifetime-in-ticks; tests use the same conversion.</summary>
         public static uint LifetimeTicks(TimeManager timeManager)
@@ -64,7 +74,60 @@ namespace LightRaiders
              * state already sanitized upstream (ADR-0005), never client data.
              * If a guard is ever added, use float.IsFinite (RaiderMovement
              * precedent: Infinity passes bare epsilon comparisons). */
-            transform.position += transform.forward * (Speed * (float)base.TimeManager.TickDelta);
+            Vector3 previous = transform.position;
+            Vector3 forward = transform.forward;
+            float distance = Speed * (float)base.TimeManager.TickDelta;
+
+            /* Segment sweep across the whole tick step (previous -> next), not a
+             * sample of the endpoint: casting the segment is what stops the shot
+             * tunneling through a collider thinner than 0.4 m of travel. Detection
+             * is server-only (ADR-0005); a hit consumes the shot at the surface. */
+            if (TrySweepWorldHit(previous, forward, distance, out Vector3 hitPoint))
+            {
+                /* Stop AT the surface so the shot is consumed where it visibly
+                 * hit; NetworkTransform replicates this final pose before the
+                 * despawn message destroys the object on every view. */
+                transform.position = hitPoint;
+                Despawn();
+                return;
+            }
+
+            transform.position = previous + forward * distance;
+        }
+
+        /// <summary>
+        /// Nearest WORLD-geometry hit along the segment, if any. World geometry is
+        /// the arena's non-networked colliders (floor, walls, obstacles); Raiders
+        /// and projectiles carry a NetworkObject and are skipped, so a shot passes
+        /// through them (no damage yet - issue #15 is consumption by geometry only).
+        /// Skipping networked bodies also lets the cast see a wall standing behind
+        /// another Raider within the same segment. Server-only.
+        /// </summary>
+        private static bool TrySweepWorldHit(Vector3 origin, Vector3 direction, float distance, out Vector3 hitPoint)
+        {
+            hitPoint = default;
+            if (distance <= 0f)
+                return false;
+
+            int count = Physics.RaycastNonAlloc(
+                origin, direction, _sweepHits, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+
+            float nearest = float.PositiveInfinity;
+            bool found = false;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = _sweepHits[i];
+                // RaycastNonAlloc fills the buffer unsorted; select the closest world hit ourselves.
+                if (hit.distance >= nearest)
+                    continue;
+                if (hit.collider.GetComponentInParent<NetworkObject>() != null)
+                    continue;   // a Raider / projectile - shots are consumed only by world geometry
+                nearest = hit.distance;
+                hitPoint = hit.point;
+                found = true;
+            }
+
+            return found;
         }
     }
 }
