@@ -14,10 +14,12 @@ namespace LightRaiders.Editor
 
         public const string RaiderPrefab = PrefabsFolder + "/Raider.prefab";
         public const string ProjectilePrefab = PrefabsFolder + "/Projectile.prefab";
+        public const string DummyTargetPrefab = PrefabsFolder + "/DummyTarget.prefab";
         public const string BootstrapArenaScene = ScenesFolder + "/BootstrapArena.unity";
         public const string RaiderMaterial = MaterialsFolder + "/Raider.mat";
         public const string AimIndicatorMaterial = MaterialsFolder + "/AimIndicator.mat";
         public const string ProjectileMaterial = MaterialsFolder + "/Projectile.mat";
+        public const string DummyTargetMaterial = MaterialsFolder + "/DummyTarget.mat";
         public const string ArenaFloorMaterial = MaterialsFolder + "/ArenaFloor.mat";
         public const string ArenaObstacleMaterial = MaterialsFolder + "/ArenaObstacle.mat";
 

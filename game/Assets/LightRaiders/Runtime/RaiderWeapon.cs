@@ -15,6 +15,8 @@ namespace LightRaiders
     {
         // 4 shots/s: responsive, and 8 ticks at 30Hz leaves a comfortably testable window.
         public const float FireCooldownSeconds = 0.25f;
+        // Flat damage per hit (PRD tuning). 25 vs Shield 50 / Health 100 = two hits through the Shield, then four into Health.
+        public const int ProjectileDamage = 25;
         // Clears the CharacterController (radius 0.5) AND the AimIndicator tip (local z 0.9+0.4=1.3), so the bolt visibly emerges past the indicator.
         public const float MuzzleForwardOffset = 1.4f;
         // Matches the CC center / Visual capsule center / AimIndicator height: shots leave at chest height and fly flat at y=1 over flat ground.
@@ -65,6 +67,12 @@ namespace LightRaiders
              * the projectile is server-owned; no client has authority and no
              * RPCs exist on it. */
             NetworkObject nob = base.NetworkManager.GetPooledInstantiated(_projectilePrefab, origin, transform.rotation, true);
+
+            /* Stamp the shot BEFORE spawning so hit detection has its side/damage
+             * from the first tick: fired by this Raider (base.ObjectId), on the
+             * Raider side, so it damages hostile-side targets only - never the
+             * shooter, never other Raiders. */
+            nob.GetComponent<Projectile>().ServerInitCombat(Side.Raider, ProjectileDamage, base.NetworkObject.ObjectId);
             base.ServerManager.Spawn(nob);
         }
     }
