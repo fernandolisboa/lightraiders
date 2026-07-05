@@ -166,7 +166,7 @@ namespace LightRaiders.Tests
         }
 
         [UnityTest]
-        public IEnumerator RaiderHud_AcquiresOwnedRaider_AndStaysEmptyWithoutHealth()
+        public IEnumerator RaiderHud_ReflectsOwnedRaiderReplicatedHealth()
         {
             NetworkManager server = _harness.CreateNetworkManager(withSpawner: true, spawns: _spawns);
             server.ServerManager.StartConnection();
@@ -199,15 +199,28 @@ namespace LightRaiders.Tests
             NetworkObject ownedRaider = NetworkSessionHarness.FindOwnedRaider(client);
             ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(new ScriptedRaiderIntentProvider());
 
-            // The HUD acquires the owned Raider.
+            // The HUD acquires the owned Raider and binds to its Health (Raiders carry Health as of #17).
             yield return _harness.WaitUntil(() => hud.HasOwnedRaider, "HUD never acquired the owned Raider.");
+            yield return _harness.WaitUntil(() => hud.BoundHealth != null, "HUD never bound to the owned Raider's replicated Health.");
 
-            /* Raiders carry no Health this slice (#17 adds it): the HUD binds to
-             * nothing and both bars sit empty without erroring. After the #17 rebase
-             * BoundHealth is non-null and the fills reflect the owned Raider. */
-            Assert.IsNull(hud.BoundHealth, "Precondition: Raiders carry no Health this slice, so the HUD binds to none.");
-            Assert.That(hud.ShieldFill, Is.EqualTo(0f), "Shield bar should read empty with no bound Health.");
-            Assert.That(hud.HealthFill, Is.EqualTo(0f), "Health bar should read empty with no bound Health.");
+            // Full bars at spawn (anti-vacuity for the drop below).
+            yield return _harness.WaitUntil(
+                () => hud.ShieldFill > 0.999f && hud.HealthFill > 0.999f,
+                "HUD screen bars did not read full Shield/Health at spawn.");
+
+            /* Live binding: damage the owned Raider on the SERVER (authoritative), and
+             * the client-local bars must follow the replicated drop - Shield empties,
+             * then Health falls by the overflow. This is AC #1 (the own bars reflect
+             * the replicated Shield/Health), the way taking emitter fire will read. */
+            NetworkObject serverRaider = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
+            Assert.IsNotNull(serverRaider, "Server view has no instance of the owned Raider.");
+            serverRaider.GetComponent<Health>().ApplyDamageOnServer(Health.MaxShield + 20);
+
+            float expectedHealthFill = (float)(Health.MaxHealth - 20) / Health.MaxHealth;
+            yield return _harness.WaitUntil(
+                () => hud.ShieldFill < 0.01f && Mathf.Abs(hud.HealthFill - expectedHealthFill) < 0.01f,
+                "HUD screen bars never reflected the owned Raider's replicated damage.",
+                15f);
         }
 
         private WorldSpaceHealthBars AttachWorldBars(NetworkManager client, string name)
