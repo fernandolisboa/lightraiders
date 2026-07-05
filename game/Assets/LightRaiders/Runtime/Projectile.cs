@@ -29,8 +29,10 @@ namespace LightRaiders
          * the server OnTick handler (single-threaded, one instance at a time
          * per invocation), so one shared buffer is safe and keeps the hot path
          * allocation-free. 16 is far above the collider count any 0.4 m segment
-         * crosses in this arena; a saturated buffer would only risk missing a
-         * FARTHER hit, never the nearest, which is the one that consumes the shot. */
+         * ever crosses in this arena, so the buffer never saturates - which is
+         * what keeps the nearest-hit selection sound: RaycastNonAlloc gives no
+         * nearest-first ordering, so a saturated buffer could drop the nearest
+         * hit, not merely farther ones. */
         private static readonly RaycastHit[] _sweepHits = new RaycastHit[16];
 
         /// <summary>Single source of truth for lifetime-in-ticks; tests use the same conversion.</summary>
@@ -84,9 +86,12 @@ namespace LightRaiders
              * is server-only (ADR-0005); a hit consumes the shot at the surface. */
             if (TrySweepWorldHit(previous, forward, distance, out Vector3 hitPoint))
             {
-                /* Stop AT the surface so the shot is consumed where it visibly
-                 * hit; NetworkTransform replicates this final pose before the
-                 * despawn message destroys the object on every view. */
+                /* Place the server object at the surface for its final tick so
+                 * the server-truth stop pose is the hit point. Observers despawn
+                 * within their interpolation delay of it rather than rendering
+                 * this exact pose - the despawn message follows in the same tick,
+                 * before NetworkTransform would send it. Good enough for the
+                 * slice; the surface pose matters for #16's impact location. */
                 transform.position = hitPoint;
                 Despawn();
                 return;
@@ -102,6 +107,12 @@ namespace LightRaiders
         /// through them (no damage yet - issue #15 is consumption by geometry only).
         /// Skipping networked bodies also lets the cast see a wall standing behind
         /// another Raider within the same segment. Server-only.
+        ///
+        /// LANDMINE for #16: this rule is "stop on non-networked", NOT "stop on
+        /// world geometry". The breakable targets #16 adds will be networked yet
+        /// hittable, so they cannot simply be dropped in here - detection must be
+        /// reshaped to pass through Raiders/projectiles while stopping on world
+        /// geometry AND damageables (e.g. a physics layer, or an IDamageable lookup).
         /// </summary>
         private static bool TrySweepWorldHit(Vector3 origin, Vector3 direction, float distance, out Vector3 hitPoint)
         {

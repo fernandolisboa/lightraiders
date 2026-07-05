@@ -578,9 +578,14 @@ namespace LightRaiders.Tests
                 maxReachedX,
                 Is.LessThan(wallFarX + 0.5f),
                 "Projectile passed through the wall (tunneling) instead of stopping at the surface.");
+            /* Lower bound proves it actually reached the wall (a real early-despawn
+             * bug stops near the muzzle, ~6 m short). The 2.5 m budget absorbs a
+             * multi-tick catch-up stall right before impact, when frame polling can
+             * miss the last few 0.4 m samples - the position-poll overshoot the
+             * lifetime test also guards against. */
             Assert.That(
                 maxReachedX,
-                Is.GreaterThan(wallNearX - 1f),
+                Is.GreaterThan(wallNearX - 2.5f),
                 "Projectile despawned before reaching the wall - not a surface hit.");
 
             // Consumed identically on the observer.
@@ -632,9 +637,10 @@ namespace LightRaiders.Tests
                 maxReachedX,
                 Is.LessThan(wallFarX + 0.5f),
                 "Projectile tunneled through the thin obstacle instead of being consumed by it.");
+            // 2.5 m lower-bound budget absorbs a pre-impact catch-up stall; see the wall test.
             Assert.That(
                 maxReachedX,
-                Is.GreaterThan(wallNearX - 1f),
+                Is.GreaterThan(wallNearX - 2.5f),
                 "Projectile despawned before reaching the thin obstacle - not a surface hit.");
         }
 
