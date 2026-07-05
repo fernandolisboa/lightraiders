@@ -65,8 +65,11 @@ namespace LightRaiders.Tests
         [UnityTest]
         public IEnumerator EmitterFiresAtRaiderInRange_OnCadence()
         {
-            // One neutral Raider 5 m from the emitter - comfortably inside the 15 m range.
-            NetworkManager server = StartServer(new Vector3(5f, 1f, 0f));
+            /* One neutral Raider near max range (13 m of the 15 m radius): each
+             * shot's ~32-tick flight before it despawns on impact gives the poll a
+             * wide window to record its spawn tick (a 5 m target's ~11-tick flight
+             * could slip between polls under a stall). */
+            NetworkManager server = StartServer(new Vector3(13f, 1f, 0f));
             RaiderHandle raider = new RaiderHandle();
             yield return AddNeutralRaider(server, 1, raider);
 
@@ -83,9 +86,10 @@ namespace LightRaiders.Tests
 
             /* FirePeriodSeconds >> one tick, so proving consecutive spawn spacing
              * equals the period proves the emitter did NOT fire on the intervening
-             * ticks. Spacing is measured in server-recorded spawn ticks (immune to
-             * editor stalls in both directions), exactly as FireHeld_RespectsCooldown
-             * measures the Raider weapon. */
+             * ticks. Spacing is measured in server-recorded spawn ticks; unlike
+             * FireHeld_RespectsCooldown (whose shots linger their full lifetime),
+             * these despawn on impact, so the near-max-range placement above is what
+             * keeps every shot's spawn observable between polls. */
             Dictionary<int, uint> spawnTicks = new Dictionary<int, uint>();
             yield return _harness.WaitUntil(() =>
             {

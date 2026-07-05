@@ -130,9 +130,9 @@ namespace LightRaiders
         /// obstacles) stops it with no target. A Health of the OPPOSITE side (a
         /// hostile-side damageable) stops it AND is returned via <paramref
         /// name="damageable"/> for damage. Same-side Health and every other
-        /// networked body (Raiders without Health, other projectiles) are skipped,
-        /// so a shot passes through its own side - friendly fire off - and still
-        /// sees a target standing behind a friendly Raider within the segment.
+        /// networked body (other projectiles) are skipped, so a shot passes through
+        /// its own side - friendly fire off - and still sees a target standing
+        /// behind a friendly Raider within the segment.
         /// Server-only. Non-static because it reads the instance's _side.
         /// </summary>
         private bool TrySweepHit(Vector3 origin, Vector3 direction, float distance, out Vector3 hitPoint, out Health damageable)
@@ -169,7 +169,7 @@ namespace LightRaiders
                 }
 
                 if (hit.collider.GetComponentInParent<NetworkObject>() != null)
-                    continue;   // networked but not damageable (Raider, projectile) - pass through
+                    continue;   // networked but carries no Health (a stray projectile) - pass through
 
                 // Non-networked collider: world geometry - consumes the shot, no damage.
                 nearest = hit.distance;

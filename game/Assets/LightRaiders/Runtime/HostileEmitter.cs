@@ -12,8 +12,11 @@ namespace LightRaiders
     /// and never touch the emitter itself or any other Hostile-side body (friendly
     /// fire off). Deliberately NOT a Choir unit (Phase 3): no movement, no AI
     /// states, no Choir naming - pure scaffolding so damage is feelable in
-    /// playtests. Pure clients never simulate it: OnStartServer never runs there,
-    /// so the tick handler is never subscribed and no shot ever originates
+    /// playtests. It carries a Health component only so #19 can draw a world-space
+    /// bar over it; it deliberately has NO zero-Health behavior this slice, so a
+    /// Raider can deplete it yet it keeps firing (breakability/death are out of
+    /// scope - #18). Pure clients never simulate it: OnStartServer never runs
+    /// there, so the tick handler is never subscribed and no shot ever originates
     /// client-side.
     /// </summary>
     public sealed class HostileEmitter : NetworkBehaviour

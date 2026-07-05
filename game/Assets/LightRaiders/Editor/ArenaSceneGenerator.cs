@@ -154,9 +154,10 @@ namespace LightRaiders.Editor
 
             /* Hostile-emitter posts, at floor level (y=0) so the 2-tall emitter
              * pillar spans y 0..2 and its muzzle sits at y=1. Placed so each emitter
-             * is well inside its 15 m range of a corner Raider spawn - each is ~9.9 m
-             * from the nearest +z spawn (15,15)/(-15,15) - so the arena "shoots back"
-             * the moment a Raider spawns. Clear of the obstacle footprints. */
+             * is ~9.9 m (well inside its 15 m range) from the nearest +z corner spawn
+             * (15,15)/(-15,15), so a Raider spawning there is shot at immediately; the
+             * -z corner spawns sit ~24 m out and draw fire only once a Raider closes
+             * in. Clear of the obstacle footprints. */
             Vector3[] emitterPostPositions =
             {
                 new Vector3(8f, 0f, 8f),
