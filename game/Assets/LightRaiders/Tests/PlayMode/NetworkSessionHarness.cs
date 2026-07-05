@@ -168,6 +168,29 @@ namespace LightRaiders.Tests
             return null;
         }
 
+        public static int CountDamageables(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            int count = 0;
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Health>() != null)
+                    count++;
+            }
+
+            return count;
+        }
+
+        public static NetworkObject FindDamageable(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Health>() != null)
+                    return networkObject;
+            }
+
+            return null;
+        }
+
         public static float PlanarDistance(Vector3 a, Vector3 b)
         {
             return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));

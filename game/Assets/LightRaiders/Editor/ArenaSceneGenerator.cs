@@ -35,8 +35,10 @@ namespace LightRaiders.Editor
         public static void GenerateAll()
         {
             /* Projectile before Raider: RaiderPrefabGenerator wires a serialized
-             * reference to the Projectile prefab asset and fail-fasts if it is absent. */
+             * reference to the Projectile prefab asset and fail-fasts if it is absent.
+             * DummyTarget is independent (no cross-prefab references). */
             ProjectilePrefabGenerator.Generate();
+            DummyTargetPrefabGenerator.Generate();
             RaiderPrefabGenerator.Generate();
 
             Scene scene;
@@ -61,9 +63,10 @@ namespace LightRaiders.Editor
                     Object.DestroyImmediate(rootGo);
             }
 
-            Transform[] spawnPoints = BuildArena();
+            Transform[] spawnPoints = BuildArena(out Transform[] targetPosts);
             NetworkManager networkManager = BuildNetworkSession(spawnPoints);
             BuildCameraRig(networkManager);
+            BuildTargetSpawner(networkManager, targetPosts);
 
             /* Build-settings registration is deliberately unnecessary: editor and MPPM
              * play modes use the currently open scene, and there are no standalone builds yet. */
@@ -72,7 +75,7 @@ namespace LightRaiders.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private static Transform[] BuildArena()
+        private static Transform[] BuildArena(out Transform[] targetPosts)
         {
             Material floorMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaFloorMaterial, new Color(0.55f, 0.55f, 0.55f));
             Material obstacleMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaObstacleMaterial, new Color(0.30f, 0.30f, 0.32f));
@@ -126,6 +129,25 @@ namespace LightRaiders.Editor
                 spawnPoint.transform.SetParent(arena.transform);
                 spawnPoint.transform.localPosition = spawnPositions[i];
                 spawnPoints[i] = spawnPoint.transform;
+            }
+
+            /* Dummy-target posts, at floor level (y=0) so the 2-tall target capsule
+             * spans y 0..2 and a flat shot at muzzle height (y=1) strikes it. Placed
+             * in open floor clear of the obstacles, along +z where the corner spawns
+             * have a shooting lane. */
+            Vector3[] targetPostPositions =
+            {
+                new Vector3(0f, 0f, 10f),
+                new Vector3(10f, 0f, 10f),
+                new Vector3(-10f, 0f, 10f)
+            };
+            targetPosts = new Transform[targetPostPositions.Length];
+            for (int i = 0; i < targetPostPositions.Length; i++)
+            {
+                GameObject targetPost = new GameObject("TargetPost" + (i + 1));
+                targetPost.transform.SetParent(arena.transform);
+                targetPost.transform.localPosition = targetPostPositions[i];
+                targetPosts[i] = targetPost.transform;
             }
 
             return spawnPoints;
@@ -182,6 +204,23 @@ namespace LightRaiders.Editor
             RaiderCameraRig rig = rigGo.AddComponent<RaiderCameraRig>();
             rig.SetNetworkManager(networkManager);
             EditorUtility.SetDirty(rig);
+        }
+
+        private static void BuildTargetSpawner(NetworkManager networkManager, Transform[] posts)
+        {
+            /* Server-side spawner lives on the NetworkSession GameObject next to
+             * SessionBootstrap, sharing the session NetworkManager. It is torn down
+             * and rebuilt with that root by GenerateAll's idempotency sweep. */
+            DummyTargetSpawner spawner = networkManager.gameObject.AddComponent<DummyTargetSpawner>();
+
+            NetworkObject targetPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.DummyTargetPrefab);
+            if (targetPrefab == null)
+                throw new System.InvalidOperationException("Expected the DummyTarget prefab (with a NetworkObject) at '" + SessionAssetPaths.DummyTargetPrefab + "' but none was found — DummyTargetPrefabGenerator.Generate should have created it earlier in this run; rerun generation and check the log.");
+
+            spawner.SetNetworkManager(networkManager);
+            spawner.SetTargetPrefab(targetPrefab);
+            spawner.SetPosts(posts);
+            EditorUtility.SetDirty(spawner);
         }
     }
 }
