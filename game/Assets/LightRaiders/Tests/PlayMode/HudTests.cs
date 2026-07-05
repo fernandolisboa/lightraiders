@@ -83,7 +83,10 @@ namespace LightRaiders.Tests
             Health serverHealth = serverTarget.GetComponent<Health>();
             int objectId = serverTarget.ObjectId;
 
-            // A bar appears over the damageable and starts full (anti-vacuity for the drop below).
+            /* A bar appears over the damageable and starts full - anti-vacuity for
+             * the drop below. The full gate is meaningful because Health's SyncVars
+             * default to 0 (new()) and only reach full in OnStartServer, so f > 0.999
+             * cannot pass until the real value has replicated to this client. */
             yield return _harness.WaitUntil(
                 () => bars.BarCount == 1 && bars.TryGetFill(objectId, out float f) && f > 0.999f,
                 "World bar never appeared at full fill over the target.",
@@ -158,6 +161,7 @@ namespace LightRaiders.Tests
             NetworkObject respawnedClientTarget = NetworkSessionHarness.FindDamageable(client.ClientManager.Objects.Spawned);
             Assert.IsNotNull(respawnedClientTarget, "Observer has no instance of the respawned target.");
             int respawnObjectId = respawnedClientTarget.ObjectId;
+            Assert.AreNotEqual(firstObjectId, respawnObjectId, "Respawn reused the old ObjectId - cannot prove the bar is fresh, not a leftover.");
             yield return _harness.WaitUntil(
                 () => bars.TryGetFill(respawnObjectId, out float f) && f > 0.999f,
                 "Respawned target's bar was not fresh and full.",

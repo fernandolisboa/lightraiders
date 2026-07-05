@@ -13,10 +13,9 @@ namespace LightRaiders
     /// mould: the HUD is client-local, never networked, and reads ONLY replicated
     /// Health state (ADR-0005) - no local prediction or client-side bookkeeping.
     ///
-    /// Binds generically: it drives whatever Health the owned Raider carries. On
-    /// the current slice a Raider has no Health, so BoundHealth is null and both
-    /// bars sit empty without erroring; once #17 gives Raiders a Health the bars
-    /// light up with no change here.
+    /// Binds generically to whatever Health the owned Raider carries; BoundHealth
+    /// is null (and both bars read empty without erroring) only while no Raider is
+    /// owned yet - e.g. before the local Raider has spawned.
     /// </summary>
     public sealed class RaiderHud : MonoBehaviour
     {
@@ -36,12 +35,11 @@ namespace LightRaiders
 
         /// <summary>
         /// True while the owned Raider is present in the client view, whether or not
-        /// it carries a Health. Lets a test assert acquisition works today, before
-        /// Raiders gain Health in #17.
+        /// it carries a Health - acquisition is tracked separately from binding.
         /// </summary>
         public bool HasOwnedRaider { get; private set; }
 
-        /// <summary>The owned Raider's Health, or null when it has none (this slice) or no Raider is owned yet.</summary>
+        /// <summary>The owned Raider's Health, or null while no Raider is owned yet.</summary>
         public Health BoundHealth => _health;
 
         /// <summary>Shield fill fraction last applied to the bar (0 when unbound). Set without rendering, so headless tests can read it.</summary>
