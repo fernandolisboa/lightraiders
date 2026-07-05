@@ -522,6 +522,247 @@ namespace LightRaiders.Tests
             Object.Destroy(instance.gameObject);
         }
 
+        [UnityTest]
+        public IEnumerator ProjectileHittingWall_DespawnsAtSurface()
+        {
+            Shooter shooter = new Shooter();
+            yield return ArrangePlusXShooter(shooter);
+
+            /* World geometry across the flight path: a non-networked cube with
+             * its default BoxCollider, 6 m ahead of the muzzle. Not thin - this
+             * test isolates "consumed at the surface", the thin-obstacle sweep is
+             * covered separately below. */
+            const float nearFaceDistance = 6f;
+            const float thickness = 1f;
+            BuildWallAcrossPath(shooter.Muzzle, nearFaceDistance, thickness);
+            float wallNearX = shooter.Muzzle.x + nearFaceDistance;
+            float wallFarX = wallNearX + thickness;
+
+            Assert.That(
+                NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned),
+                Is.EqualTo(0),
+                "A projectile existed before any fire intent.");
+
+            // One shot only: stop firing the instant it spawns so the ~8-tick cooldown never adds a second.
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim, FirePressed = true };
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) >= 1,
+                "Fire intent never spawned a projectile on the server.");
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
+
+            // Observer positive control: the shot must be seen by the other view before it is consumed.
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountProjectiles(shooter.Client.ClientManager.Objects.Spawned) >= 1,
+                "Observer client never saw the projectile.",
+                15f);
+
+            /* Track the furthest point reached while the shot is alive. Frame
+             * polling can only sample BEFORE the despawn tick destroys the
+             * object, so the last sample sits within one tick of travel (~0.4 m)
+             * short of the surface. */
+            float maxReachedX = float.NegativeInfinity;
+            yield return _harness.WaitUntil(
+                () =>
+                {
+                    NetworkObject live = NetworkSessionHarness.FindProjectile(shooter.Server.ServerManager.Objects.Spawned);
+                    if (live != null)
+                        maxReachedX = Mathf.Max(maxReachedX, live.transform.position.x);
+                    return NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) == 0;
+                },
+                "Projectile never despawned - the wall did not consume it.");
+
+            /* Consumed by the WALL, not by lifetime: had it tunneled it would
+             * have flown the full ~18 m range (well past the far face); had it
+             * despawned early it would never have reached the near face. */
+            Assert.That(
+                maxReachedX,
+                Is.LessThan(wallFarX + 0.5f),
+                "Projectile passed through the wall (tunneling) instead of stopping at the surface.");
+            /* Lower bound proves it actually reached the wall (a real early-despawn
+             * bug stops near the muzzle, ~6 m short). The 2.5 m budget absorbs a
+             * multi-tick catch-up stall right before impact, when frame polling can
+             * miss the last few 0.4 m samples - the position-poll overshoot the
+             * lifetime test also guards against. */
+            Assert.That(
+                maxReachedX,
+                Is.GreaterThan(wallNearX - 2.5f),
+                "Projectile despawned before reaching the wall - not a surface hit.");
+
+            // Consumed identically on the observer.
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountProjectiles(shooter.Client.ClientManager.Objects.Spawned) == 0,
+                "Projectile never despawned on the observer client.",
+                15f);
+        }
+
+        [UnityTest]
+        public IEnumerator ProjectileThroughThinObstacle_StillDespawns()
+        {
+            Shooter shooter = new Shooter();
+            yield return ArrangePlusXShooter(shooter);
+
+            /* Deliberately thinner than one tick of travel (0.4 m at Speed 12 /
+             * 30 Hz): a per-tick endpoint sample would step clean over this slab,
+             * so only a true segment sweep registers the hit. This is the
+             * anti-tunneling acceptance criterion. */
+            const float nearFaceDistance = 6f;
+            const float thickness = 0.05f;
+            BuildWallAcrossPath(shooter.Muzzle, nearFaceDistance, thickness);
+            float wallNearX = shooter.Muzzle.x + nearFaceDistance;
+            float wallFarX = wallNearX + thickness;
+
+            Assert.That(
+                NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned),
+                Is.EqualTo(0),
+                "A projectile existed before any fire intent.");
+
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim, FirePressed = true };
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) >= 1,
+                "Fire intent never spawned a projectile on the server.");
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
+
+            float maxReachedX = float.NegativeInfinity;
+            yield return _harness.WaitUntil(
+                () =>
+                {
+                    NetworkObject live = NetworkSessionHarness.FindProjectile(shooter.Server.ServerManager.Objects.Spawned);
+                    if (live != null)
+                        maxReachedX = Mathf.Max(maxReachedX, live.transform.position.x);
+                    return NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) == 0;
+                },
+                "Projectile never despawned - the thin obstacle was tunneled through.");
+
+            Assert.That(
+                maxReachedX,
+                Is.LessThan(wallFarX + 0.5f),
+                "Projectile tunneled through the thin obstacle instead of being consumed by it.");
+            // 2.5 m lower-bound budget absorbs a pre-impact catch-up stall; see the wall test.
+            Assert.That(
+                maxReachedX,
+                Is.GreaterThan(wallNearX - 2.5f),
+                "Projectile despawned before reaching the thin obstacle - not a surface hit.");
+        }
+
+        [UnityTest]
+        public IEnumerator ProjectileInOpenSpace_FliesPastObstacleZone_ThenDespawnsAtLifetime()
+        {
+            Shooter shooter = new Shooter();
+            yield return ArrangePlusXShooter(shooter);
+
+            /* Same +X setup as the collision tests but with NO wall: the
+             * positive control proving the shots above are consumed by the wall,
+             * not by anything intrinsic to the firing setup. The shot must fly
+             * clean through the zone where those walls stood and only expire on
+             * lifetime (~17.6 m = Speed * (LifetimeSeconds - one tick)). */
+            const float obstacleZoneX = 6f;
+
+            Assert.That(
+                NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned),
+                Is.EqualTo(0),
+                "A projectile existed before any fire intent.");
+
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim, FirePressed = true };
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) >= 1,
+                "Fire intent never spawned a projectile on the server.");
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
+
+            float maxReachedX = float.NegativeInfinity;
+            yield return _harness.WaitUntil(
+                () =>
+                {
+                    NetworkObject live = NetworkSessionHarness.FindProjectile(shooter.Server.ServerManager.Objects.Spawned);
+                    if (live != null)
+                        maxReachedX = Mathf.Max(maxReachedX, live.transform.position.x);
+                    return NetworkSessionHarness.CountProjectiles(shooter.Server.ServerManager.Objects.Spawned) == 0;
+                },
+                "Projectile never despawned on its lifetime in open space.",
+                10f);
+
+            // Flew well past where the walls stood (no false hit), and covered ~the full lifetime range.
+            Assert.That(
+                maxReachedX,
+                Is.GreaterThan(shooter.Muzzle.x + obstacleZoneX + 1f),
+                "Projectile despawned inside the open obstacle zone - a phantom hit with no collider present.");
+            Assert.That(
+                maxReachedX - shooter.Muzzle.x,
+                Is.InRange(15f, 18.5f),
+                "Projectile did not travel its full lifetime range in open space.");
+        }
+
+        /// <summary>Handles for a settled, +X-facing shooter shared by the collision tests.</summary>
+        private sealed class Shooter
+        {
+            public NetworkManager Server;
+            public NetworkManager Client;
+            public NetworkObject ServerRaider;
+            public ScriptedRaiderIntentProvider Scripted;
+            public Vector3 Aim;      // carried in every intent - the RaiderIntent struct trap resets AimPoint otherwise
+            public Vector3 Muzzle;   // server-truth muzzle, computed after facing converged
+        }
+
+        /// <summary>
+        /// Server + one client, the owned Raider driven by a scripted provider,
+        /// settled onto the floor and converged to face due +X. Populates the
+        /// passed Shooter so each collision test can place geometry relative to
+        /// the known muzzle and fire down a known bearing.
+        /// </summary>
+        private IEnumerator ArrangePlusXShooter(Shooter shooter)
+        {
+            shooter.Server = _harness.CreateNetworkManager(withSpawner: true, spawns: _spawns);
+            shooter.Server.ServerManager.StartConnection();
+            yield return _harness.WaitUntil(() => shooter.Server.ServerManager.Started, "Server did not start.");
+
+            shooter.Client = _harness.CreateNetworkManager(withSpawner: false);
+            shooter.Client.ClientManager.StartConnection();
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.CountRaiders(shooter.Server.ServerManager.Objects.Spawned) == 1,
+                "Server never saw the Raider spawn.");
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.FindOwnedRaider(shooter.Client) != null,
+                "Client never saw its owned Raider.");
+
+            NetworkObject ownedRaider = NetworkSessionHarness.FindOwnedRaider(shooter.Client);
+            shooter.ServerRaider = NetworkSessionHarness.FindOnView(shooter.Server.ServerManager.Objects.Spawned, ownedRaider.ObjectId);
+            Assert.IsNotNull(shooter.ServerRaider, "Server view has no instance for the client-owned Raider.");
+
+            // Zero-intent injection before baselining; see the fixture comment.
+            shooter.Scripted = new ScriptedRaiderIntentProvider();
+            ownedRaider.GetComponent<RaiderMovement>().SetIntentProvider(shooter.Scripted);
+
+            yield return _harness.SettleServerRaider(shooter.ServerRaider);
+
+            // Converge facing on a due +X target so the flight path is a known bearing.
+            Vector3 basePos = shooter.ServerRaider.transform.position;
+            shooter.Aim = basePos + new Vector3(10f, 0f, 0f);
+            shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.PlanarAngle(shooter.ServerRaider.transform.forward, shooter.Aim - basePos) < 5f,
+                "Server facing never converged on the aim point.");
+
+            // Muzzle from the settled, converged pose - the Raider is stationary from here.
+            shooter.Muzzle = shooter.ServerRaider.transform.position
+                + shooter.ServerRaider.transform.forward * RaiderWeapon.MuzzleForwardOffset
+                + Vector3.up * RaiderWeapon.MuzzleHeight;
+        }
+
+        /// <summary>
+        /// Builds a non-networked cube (world geometry) straddling the +X flight
+        /// path, its near face <paramref name="nearFaceDistance"/> ahead of the
+        /// muzzle. Tall and deep enough (3 m) to catch the shot despite the 5-deg
+        /// facing-convergence budget; its default BoxCollider is what the sweep hits.
+        /// </summary>
+        private GameObject BuildWallAcrossPath(Vector3 muzzle, float nearFaceDistance, float thickness)
+        {
+            GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.name = "TestWall";
+            wall.transform.position = new Vector3(muzzle.x + nearFaceDistance + thickness * 0.5f, 1f, muzzle.z);
+            wall.transform.localScale = new Vector3(thickness, 3f, 3f);
+            _sceneObjects.Add(wall);
+            return wall;
+        }
+
         /// <summary>
         /// Records the SpawnTick of every projectile currently in the server
         /// view, keyed by ObjectId. Called from within WaitUntil polls so spawn
