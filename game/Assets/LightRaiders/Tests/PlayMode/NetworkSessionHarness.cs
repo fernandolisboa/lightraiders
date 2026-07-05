@@ -191,6 +191,34 @@ namespace LightRaiders.Tests
             return null;
         }
 
+        /* Raiders became damageable in #17 (they now carry Health), so the plain
+         * CountDamageables/FindDamageable above match Raiders too. The combat tests
+         * that mean "the dummy target" - a damageable that is NOT a Raider - use these
+         * two instead, so a Raider sharing the view is never mistaken for the target. */
+
+        public static int CountTargets(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            int count = 0;
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Health>() != null && networkObject.GetComponent<Raider>() == null)
+                    count++;
+            }
+
+            return count;
+        }
+
+        public static NetworkObject FindTarget(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Health>() != null && networkObject.GetComponent<Raider>() == null)
+                    return networkObject;
+            }
+
+            return null;
+        }
+
         public static float PlanarDistance(Vector3 a, Vector3 b)
         {
             return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));

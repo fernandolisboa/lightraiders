@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3137341637283455056}
   - component: {fileID: 5419409513940672673}
   - component: {fileID: 2387944315304528615}
+  - component: {fileID: 1503228799003598345}
   - component: {fileID: 6903384982877733029}
   - component: {fileID: 606983938391514158}
   - component: {fileID: 2399595586216106844}
@@ -109,6 +110,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cebc83b614b5674fbce7bcfaf5d0387, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.Raider
+--- !u!114 &1503228799003598345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 144569332420392933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47adbfad46c28be4d8623c06f3e41754, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5419409513940672673}
+  _networkObjectCache: {fileID: 0}
+  _side: 0
 --- !u!143 &6903384982877733029
 CharacterController:
   m_ObjectHideFlags: 0

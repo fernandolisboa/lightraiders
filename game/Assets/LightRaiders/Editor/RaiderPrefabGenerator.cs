@@ -26,6 +26,14 @@ namespace LightRaiders.Editor
             root.AddComponent<NetworkObject>();
             root.AddComponent<Raider>();
 
+            /* Raiders are damageable as of #17: a Health of Side.Raider so hostile
+             * emitter shots (Side.Hostile) strip its Shield then Health, while Raider
+             * fire (Side.Raider) still passes through friendly Raiders. The root
+             * CharacterController is the collider the projectile sweep hits. Death /
+             * loot is #18 - a Raider at zero Health simply sits at zero for now. */
+            Health health = root.AddComponent<Health>();
+            SetSide(health, Side.Raider);
+
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
             visual.transform.SetParent(root.transform);
@@ -71,9 +79,20 @@ namespace LightRaiders.Editor
             RefreshDefaultPrefabsMenu.RebuildDefaultPrefabs();
         }
 
-        /* Both helpers fail fast with InvalidOperationException: -executeMethod
+        /* These helpers fail fast with InvalidOperationException: -executeMethod
          * exits 0 on silent partial success, so a missing asset or a renamed
          * serialized field must abort loudly. */
+
+        private static void SetSide(Health health, Side side)
+        {
+            SerializedObject so = new SerializedObject(health);
+            SerializedProperty sideProperty = so.FindProperty("_side");
+            if (sideProperty == null)
+                throw new InvalidOperationException(
+                    "Health renamed serialized field '_side' — update RaiderPrefabGenerator.");
+            sideProperty.enumValueIndex = (int)side;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         private static void AddInputIntentProvider(GameObject root)
         {

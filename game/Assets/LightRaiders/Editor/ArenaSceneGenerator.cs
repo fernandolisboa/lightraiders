@@ -34,12 +34,13 @@ namespace LightRaiders.Editor
         [MenuItem("Light Raiders/Generate Session Assets")]
         public static void GenerateAll()
         {
-            /* Projectile before Raider: RaiderPrefabGenerator wires a serialized
-             * reference to the Projectile prefab asset and fail-fasts if it is absent.
-             * DummyTarget is independent (no cross-prefab references). */
+            /* Projectile first: both RaiderPrefabGenerator and HostileEmitterPrefabGenerator
+             * wire a serialized reference to the Projectile prefab asset and fail-fast if it
+             * is absent. DummyTarget is independent (no cross-prefab references). */
             ProjectilePrefabGenerator.Generate();
             DummyTargetPrefabGenerator.Generate();
             RaiderPrefabGenerator.Generate();
+            HostileEmitterPrefabGenerator.Generate();
 
             Scene scene;
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionAssetPaths.BootstrapArenaScene) != null)
@@ -63,10 +64,11 @@ namespace LightRaiders.Editor
                     Object.DestroyImmediate(rootGo);
             }
 
-            Transform[] spawnPoints = BuildArena(out Transform[] targetPosts);
+            Transform[] spawnPoints = BuildArena(out Transform[] targetPosts, out Transform[] emitterPosts);
             NetworkManager networkManager = BuildNetworkSession(spawnPoints);
             BuildCameraRig(networkManager);
             BuildTargetSpawner(networkManager, targetPosts);
+            BuildEmitterSpawner(networkManager, emitterPosts);
 
             /* Build-settings registration is deliberately unnecessary: editor and MPPM
              * play modes use the currently open scene, and there are no standalone builds yet. */
@@ -75,7 +77,7 @@ namespace LightRaiders.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private static Transform[] BuildArena(out Transform[] targetPosts)
+        private static Transform[] BuildArena(out Transform[] targetPosts, out Transform[] emitterPosts)
         {
             Material floorMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaFloorMaterial, new Color(0.55f, 0.55f, 0.55f));
             Material obstacleMaterial = RaiderPrefabGenerator.CreateOrUpdateMaterial(SessionAssetPaths.ArenaObstacleMaterial, new Color(0.30f, 0.30f, 0.32f));
@@ -150,6 +152,26 @@ namespace LightRaiders.Editor
                 targetPosts[i] = targetPost.transform;
             }
 
+            /* Hostile-emitter posts, at floor level (y=0) so the 2-tall emitter
+             * pillar spans y 0..2 and its muzzle sits at y=1. Placed so each emitter
+             * is ~9.9 m (well inside its 15 m range) from the nearest +z corner spawn
+             * (15,15)/(-15,15), so a Raider spawning there is shot at immediately; the
+             * -z corner spawns sit ~24 m out and draw fire only once a Raider closes
+             * in. Clear of the obstacle footprints. */
+            Vector3[] emitterPostPositions =
+            {
+                new Vector3(8f, 0f, 8f),
+                new Vector3(-8f, 0f, 8f)
+            };
+            emitterPosts = new Transform[emitterPostPositions.Length];
+            for (int i = 0; i < emitterPostPositions.Length; i++)
+            {
+                GameObject emitterPost = new GameObject("EmitterPost" + (i + 1));
+                emitterPost.transform.SetParent(arena.transform);
+                emitterPost.transform.localPosition = emitterPostPositions[i];
+                emitterPosts[i] = emitterPost.transform;
+            }
+
             return spawnPoints;
         }
 
@@ -219,6 +241,23 @@ namespace LightRaiders.Editor
 
             spawner.SetNetworkManager(networkManager);
             spawner.SetTargetPrefab(targetPrefab);
+            spawner.SetPosts(posts);
+            EditorUtility.SetDirty(spawner);
+        }
+
+        private static void BuildEmitterSpawner(NetworkManager networkManager, Transform[] posts)
+        {
+            /* Same placement contract as BuildTargetSpawner: a server-side spawner on
+             * the NetworkSession GameObject, sharing the session NetworkManager, torn
+             * down and rebuilt by GenerateAll's idempotency sweep. */
+            HostileEmitterSpawner spawner = networkManager.gameObject.AddComponent<HostileEmitterSpawner>();
+
+            NetworkObject emitterPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.HostileEmitterPrefab);
+            if (emitterPrefab == null)
+                throw new System.InvalidOperationException("Expected the HostileEmitter prefab (with a NetworkObject) at '" + SessionAssetPaths.HostileEmitterPrefab + "' but none was found — HostileEmitterPrefabGenerator.Generate should have created it earlier in this run; rerun generation and check the log.");
+
+            spawner.SetNetworkManager(networkManager);
+            spawner.SetEmitterPrefab(emitterPrefab);
             spawner.SetPosts(posts);
             EditorUtility.SetDirty(spawner);
         }

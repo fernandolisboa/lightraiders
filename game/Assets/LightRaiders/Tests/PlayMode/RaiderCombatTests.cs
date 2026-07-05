@@ -168,29 +168,29 @@ namespace LightRaiders.Tests
 
             // Target appears on server and observer.
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned) == 1,
+                () => NetworkSessionHarness.CountTargets(shooter.Server.ServerManager.Objects.Spawned) == 1,
                 "Spawner never spawned a target on the server.");
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Client.ClientManager.Objects.Spawned) == 1,
+                () => NetworkSessionHarness.CountTargets(shooter.Client.ClientManager.Objects.Spawned) == 1,
                 "Observer never saw the spawned target.",
                 15f);
 
             // Fire until it dies and despawns everywhere.
             shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim, FirePressed = true };
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned) == 0,
+                () => NetworkSessionHarness.CountTargets(shooter.Server.ServerManager.Objects.Spawned) == 0,
                 "Target never despawned at zero Health.",
                 15f);
             uint despawnObservedTick = shooter.Server.TimeManager.Tick;
             shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Client.ClientManager.Objects.Spawned) == 0,
+                () => NetworkSessionHarness.CountTargets(shooter.Client.ClientManager.Objects.Spawned) == 0,
                 "Target despawn never reached the observer.",
                 15f);
 
             // Then it respawns at the post, at full Health, on all views.
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned) == 1,
+                () => NetworkSessionHarness.CountTargets(shooter.Server.ServerManager.Objects.Spawned) == 1,
                 "Target never respawned on the server.",
                 15f);
             uint respawnObservedTick = shooter.Server.TimeManager.Tick;
@@ -206,7 +206,7 @@ namespace LightRaiders.Tests
                 Is.GreaterThanOrEqualTo(respawnTicks / 2),
                 "Target respawned too soon - the respawn delay was not honored.");
 
-            NetworkObject respawned = NetworkSessionHarness.FindDamageable(shooter.Server.ServerManager.Objects.Spawned);
+            NetworkObject respawned = NetworkSessionHarness.FindTarget(shooter.Server.ServerManager.Objects.Spawned);
             Assert.That(
                 NetworkSessionHarness.PlanarDistance(respawned.transform.position, postPosition),
                 Is.LessThan(0.1f),
@@ -216,7 +216,7 @@ namespace LightRaiders.Tests
             Assert.That(respawnedHealth.CurrentHealth, Is.EqualTo(Health.MaxHealth), "Respawned target did not have full Health.");
 
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.CountDamageables(shooter.Client.ClientManager.Objects.Spawned) == 1,
+                () => NetworkSessionHarness.CountTargets(shooter.Client.ClientManager.Objects.Spawned) == 1,
                 "Respawn never reached the observer.",
                 15f);
         }
@@ -316,14 +316,20 @@ namespace LightRaiders.Tests
                 15f);
             shooterScripted.Intent = new RaiderIntent { AimPoint = aim };
 
-            // The friendly Raider is untouched: both Raiders still spawned, and Raiders carry no Health this slice.
+            // The friendly Raider is untouched: both Raiders still spawned.
             Assert.That(
                 NetworkSessionHarness.CountRaiders(server.ServerManager.Objects.Spawned),
                 Is.EqualTo(2),
                 "A Raider despawned - the shot affected a friendly.");
-            Assert.IsNull(
-                blockerServer.GetComponent<Health>(),
-                "Precondition: Raiders carry no Health this slice, so 'no friendly damage' is proven by the pass-through.");
+            /* Raiders now carry Health (#17), so "no friendly damage" is proven
+             * directly on the blocker's bars: the shot that just depleted the target
+             * behind it left the blocker at full Shield AND full Health. */
+            Health blockerHealth = blockerServer.GetComponent<Health>();
+            Assert.IsNotNull(
+                blockerHealth,
+                "Blocker Raider has no Health - Raiders became damageable in #17; the friendly-fire proof reads its bars.");
+            Assert.That(blockerHealth.Shield, Is.EqualTo(Health.MaxShield), "Friendly fire depleted the blocker Raider's Shield.");
+            Assert.That(blockerHealth.CurrentHealth, Is.EqualTo(Health.MaxHealth), "Friendly fire damaged the blocker Raider's Health.");
         }
 
         /// <summary>Handles for a settled, +X-facing single shooter shared by the combat tests.</summary>
@@ -397,10 +403,14 @@ namespace LightRaiders.Tests
             return prefab;
         }
 
-        /// <summary>Finds the single target on a client view and exposes its Health; false if not yet replicated.</summary>
+        /// <summary>
+        /// Finds the single dummy target on a client view and exposes its Health;
+        /// false if not yet replicated. Uses FindTarget (non-Raider damageable), so
+        /// the shooter Raider - damageable as of #17 - is never returned in its place.
+        /// </summary>
         private static bool TargetOnView(NetworkManager client, out Health health)
         {
-            NetworkObject target = NetworkSessionHarness.FindDamageable(client.ClientManager.Objects.Spawned);
+            NetworkObject target = NetworkSessionHarness.FindTarget(client.ClientManager.Objects.Spawned);
             health = target != null ? target.GetComponent<Health>() : null;
             return health != null;
         }
