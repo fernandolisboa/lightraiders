@@ -4,7 +4,8 @@
     "references": [
         "LightRaiders.Runtime",
         "FishNet.Runtime",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

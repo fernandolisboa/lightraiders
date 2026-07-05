@@ -24,6 +24,8 @@ namespace LightRaiders.Editor
         public const string HostileEmitterMaterial = MaterialsFolder + "/HostileEmitter.mat";
         public const string ArenaFloorMaterial = MaterialsFolder + "/ArenaFloor.mat";
         public const string ArenaObstacleMaterial = MaterialsFolder + "/ArenaObstacle.mat";
+        public const string HealthBarBackgroundMaterial = MaterialsFolder + "/HealthBarBackground.mat";
+        public const string HealthBarFillMaterial = MaterialsFolder + "/HealthBarFill.mat";
 
         /// <summary>
         /// FishNet's generated prefab collection; its default location is project-wide.
