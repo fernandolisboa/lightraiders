@@ -41,7 +41,6 @@ namespace LightRaiders
          * detection and damage (ADR-0005), so clients never need these. */
         private Side _side;
         private int _damage;
-        private int _instigatorObjectId;
 
         /// <summary>Single source of truth for lifetime-in-ticks; tests use the same conversion.</summary>
         public static uint LifetimeTicks(TimeManager timeManager)
@@ -65,16 +64,15 @@ namespace LightRaiders
         }
 
         /// <summary>
-        /// Stamps who fired this shot and how hard, server-side, before it is
-        /// spawned. Side drives friendly fire (damage crosses sides only); the
-        /// instigator id is carried for later kill attribution (#18). Must be
-        /// called on the server instance prior to ServerManager.Spawn.
+        /// Stamps which side fired this shot and how hard, server-side, before it
+        /// is spawned. Side drives friendly fire (damage crosses sides only). Must
+        /// be called on the server instance prior to ServerManager.Spawn. (Kill
+        /// attribution - who fired - arrives with #18, when something consumes it.)
         /// </summary>
-        public void ServerInitCombat(Side side, int damage, int instigatorObjectId)
+        public void ServerInitCombat(Side side, int damage)
         {
             _side = side;
             _damage = damage;
-            _instigatorObjectId = instigatorObjectId;
         }
 
         private void TimeManager_OnTick()

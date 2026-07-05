@@ -89,14 +89,14 @@ namespace LightRaiders.Tests
             // Autofire at the target.
             shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim, FirePressed = true };
 
-            /* Shield depletes first: 25 divides Shield 50 exactly, so when Shield
-             * reaches 0 Health is still untouched (no spill this hit). */
-            yield return _harness.WaitUntil(() => serverHealth.Shield == 0, "Target Shield never depleted.", 15f);
-            Assert.That(serverHealth.CurrentHealth, Is.EqualTo(Health.MaxHealth), "Health dropped before the Shield was gone.");
-
-            // Then Health falls, with the Shield already gone.
-            yield return _harness.WaitUntil(() => serverHealth.CurrentHealth < Health.MaxHealth, "Target Health never dropped after the Shield.", 15f);
-            Assert.That(serverHealth.Shield, Is.EqualTo(0), "Shield was not gone when Health began dropping.");
+            /* Shield-before-Health as a stall-immune invariant: observe the moment
+             * Health first drops and assert the Shield is already fully gone. Health
+             * only ever falls once the Shield is 0, so this holds however a hit
+             * spills across the boundary, and needs no transient (Shield==0 while
+             * Health==Max) state to be caught between frame polls. A health-first
+             * bug drops Health while Shield > 0 and fails this immediately. */
+            yield return _harness.WaitUntil(() => serverHealth.CurrentHealth < Health.MaxHealth, "Target Health never dropped.", 15f);
+            Assert.That(serverHealth.Shield, Is.EqualTo(0), "Health dropped while the Shield remained - not Shield-before-Health.");
             shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
 
             // The depletion replicates to the observer.
@@ -181,26 +181,31 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned) == 0,
                 "Target never despawned at zero Health.",
                 15f);
+            uint despawnObservedTick = shooter.Server.TimeManager.Tick;
             shooter.Scripted.Intent = new RaiderIntent { AimPoint = shooter.Aim };
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.CountDamageables(shooter.Client.ClientManager.Objects.Spawned) == 0,
                 "Target despawn never reached the observer.",
                 15f);
 
-            /* Not instant: no target through the first 45 ticks (< the ~90-tick
-             * respawn delay). Tick-gated so an editor stall cannot pass it
-             * vacuously. In-flight shots are irrelevant - there is nothing to hit. */
-            yield return _harness.WaitForServerTicks(shooter.Server, 45);
-            Assert.That(
-                NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned),
-                Is.EqualTo(0),
-                "Target respawned before its respawn delay elapsed.");
-
             // Then it respawns at the post, at full Health, on all views.
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.CountDamageables(shooter.Server.ServerManager.Objects.Spawned) == 1,
                 "Target never respawned on the server.",
                 15f);
+            uint respawnObservedTick = shooter.Server.TimeManager.Tick;
+
+            /* Delayed, not instant: the gap between observing despawn and observing
+             * respawn is at least half the respawn delay. Stall-immune in both
+             * directions - a tick catch-up burst only inflates the observed gap,
+             * and the half-delay margin absorbs poll lag on the despawn side while
+             * still catching an instant-respawn regression. */
+            uint respawnTicks = DummyTargetSpawner.RespawnTicks(shooter.Server.TimeManager);
+            Assert.That(
+                respawnObservedTick - despawnObservedTick,
+                Is.GreaterThanOrEqualTo(respawnTicks / 2),
+                "Target respawned too soon - the respawn delay was not honored.");
+
             NetworkObject respawned = NetworkSessionHarness.FindDamageable(shooter.Server.ServerManager.Objects.Spawned);
             Assert.That(
                 NetworkSessionHarness.PlanarDistance(respawned.transform.position, postPosition),
@@ -295,6 +300,10 @@ namespace LightRaiders.Tests
                 blockerServer.transform.position.x,
                 Is.InRange(muzzle.x, muzzle.x + 6f),
                 "Blocker Raider is not between the muzzle and the target - the pass-through is not being exercised.");
+            Assert.That(
+                Mathf.Abs(blockerServer.transform.position.z - muzzle.z),
+                Is.LessThan(0.5f),
+                "Blocker Raider is off the shot lane - the pass-through would be vacuous.");
             Assert.That(targetHealth.Shield, Is.EqualTo(Health.MaxShield), "Target did not start at full Shield.");
 
             /* Fire: the shot must pass THROUGH the friendly Raider and damage the

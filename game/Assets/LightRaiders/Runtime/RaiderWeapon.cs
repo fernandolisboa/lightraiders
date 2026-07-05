@@ -69,10 +69,9 @@ namespace LightRaiders
             NetworkObject nob = base.NetworkManager.GetPooledInstantiated(_projectilePrefab, origin, transform.rotation, true);
 
             /* Stamp the shot BEFORE spawning so hit detection has its side/damage
-             * from the first tick: fired by this Raider (base.ObjectId), on the
-             * Raider side, so it damages hostile-side targets only - never the
-             * shooter, never other Raiders. */
-            nob.GetComponent<Projectile>().ServerInitCombat(Side.Raider, ProjectileDamage, base.NetworkObject.ObjectId);
+             * from the first tick: on the Raider side, so it damages hostile-side
+             * targets only - never the shooter, never other Raiders. */
+            nob.GetComponent<Projectile>().ServerInitCombat(Side.Raider, ProjectileDamage);
             base.ServerManager.Spawn(nob);
         }
     }

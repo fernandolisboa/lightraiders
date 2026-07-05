@@ -103,9 +103,11 @@ namespace LightRaiders
             Transform post = _posts[postIndex];
             NetworkObject nob = _networkManager.GetPooledInstantiated(_targetPrefab, post.position, post.rotation, true);
 
-            /* Subscribe to THIS instance's death carrying its post index; the
-             * closure and the Health both die with the despawned object, so no
-             * unsubscribe is needed. */
+            /* Subscribe to THIS instance's death carrying its post index. No
+             * unsubscribe is needed BECAUSE despawn destroys the object (the
+             * default DespawnType.Destroy): the closure and the Health die with
+             * it. If targets ever switch to pooled despawn, a reused Health would
+             * accumulate handlers - unsubscribe in OnTargetDied then. */
             Health health = nob.GetComponent<Health>();
             health.Died += () => OnTargetDied(postIndex, nob);
 
