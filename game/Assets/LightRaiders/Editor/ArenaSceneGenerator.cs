@@ -60,7 +60,8 @@ namespace LightRaiders.Editor
             foreach (GameObject rootGo in scene.GetRootGameObjects())
             {
                 if (rootGo.name == ArenaRootName || rootGo.name == NetworkSessionRootName
-                    || rootGo.name == RaiderCameraRigName || rootGo.name == DefaultCameraName)
+                    || rootGo.name == RaiderCameraRigName || rootGo.name == DefaultCameraName
+                    || rootGo.name == HudGenerator.ScreenHudRootName || rootGo.name == HudGenerator.WorldBarsRootName)
                     Object.DestroyImmediate(rootGo);
             }
 
@@ -69,6 +70,7 @@ namespace LightRaiders.Editor
             BuildCameraRig(networkManager);
             BuildTargetSpawner(networkManager, targetPosts);
             BuildEmitterSpawner(networkManager, emitterPosts);
+            HudGenerator.BuildHud(networkManager);
 
             /* Build-settings registration is deliberately unnecessary: editor and MPPM
              * play modes use the currently open scene, and there are no standalone builds yet. */
