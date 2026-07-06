@@ -26,6 +26,7 @@ namespace LightRaiders.Tests
         /* Duplicated from SessionAssetPaths: this assembly cannot reference the
          * editor-only LightRaiders.Editor asmdef where those constants live. */
         private const string RaiderPrefabPath = "Assets/LightRaiders/Prefabs/Raider.prefab";
+        private const string LootBagPrefabPath = "Assets/LightRaiders/Prefabs/LootBag.prefab";
         private const string DefaultPrefabObjectsPath = "Assets/DefaultPrefabObjects.asset";
 
         /// <summary>
@@ -99,6 +100,18 @@ namespace LightRaiders.Tests
                 spawner.SetPlayerPrefab(raiderPrefab);
                 if (spawns != null)
                     spawner.Spawns = spawns;
+
+                /* A RaiderRespawner alongside the PlayerSpawner so a Raider driven to
+                 * zero Health drops a loot bag and respawns (owned by the same
+                 * connection). It is idle unless a Raider dies, so every withSpawner
+                 * test carries it harmlessly; only the death tests exercise it. */
+                RaiderRespawner respawner = go.AddComponent<RaiderRespawner>();
+                respawner.SetNetworkManager(networkManager);
+                respawner.SetRaiderPrefab(raiderPrefab);
+                respawner.SetSpawns(spawns);
+#if UNITY_EDITOR
+                respawner.SetLootBagPrefab(AssetDatabase.LoadAssetAtPath<NetworkObject>(LootBagPrefabPath));
+#endif
             }
 
             go.SetActive(true);
@@ -127,6 +140,17 @@ namespace LightRaiders.Tests
             }
 
             return count;
+        }
+
+        public static NetworkObject FindRaider(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<Raider>() != null)
+                    return networkObject;
+            }
+
+            return null;
         }
 
         public static NetworkObject FindOwnedRaider(NetworkManager clientNetworkManager)
@@ -185,6 +209,29 @@ namespace LightRaiders.Tests
             foreach (NetworkObject networkObject in spawned.Values)
             {
                 if (networkObject != null && networkObject.GetComponent<Health>() != null)
+                    return networkObject;
+            }
+
+            return null;
+        }
+
+        public static int CountLootBags(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            int count = 0;
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<LootBag>() != null)
+                    count++;
+            }
+
+            return count;
+        }
+
+        public static NetworkObject FindLootBag(IReadOnlyDictionary<int, NetworkObject> spawned)
+        {
+            foreach (NetworkObject networkObject in spawned.Values)
+            {
+                if (networkObject != null && networkObject.GetComponent<LootBag>() != null)
                     return networkObject;
             }
 
