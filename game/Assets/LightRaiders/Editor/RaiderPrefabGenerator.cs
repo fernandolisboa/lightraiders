@@ -29,10 +29,14 @@ namespace LightRaiders.Editor
             /* Raiders are damageable as of #17: a Health of Side.Raider so hostile
              * emitter shots (Side.Hostile) strip its Shield then Health, while Raider
              * fire (Side.Raider) still passes through friendly Raiders. The root
-             * CharacterController is the collider the projectile sweep hits. Death /
-             * loot is #18 - a Raider at zero Health simply sits at zero for now. */
+             * CharacterController is the collider the projectile sweep hits. */
             Health health = root.AddComponent<Health>();
             SetSide(health, Side.Raider);
+
+            /* Death consequences (#18): on zero Health the RaiderDeathHandler hands
+             * off to the session RaiderRespawner - drop a loot bag, respawn the owner
+             * after a delay. Server-only; harmless on a Raider that never dies. */
+            root.AddComponent<RaiderDeathHandler>();
 
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";

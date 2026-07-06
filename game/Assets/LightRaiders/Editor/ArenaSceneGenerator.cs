@@ -39,6 +39,7 @@ namespace LightRaiders.Editor
              * is absent. DummyTarget is independent (no cross-prefab references). */
             ProjectilePrefabGenerator.Generate();
             DummyTargetPrefabGenerator.Generate();
+            LootBagPrefabGenerator.Generate();
             RaiderPrefabGenerator.Generate();
             HostileEmitterPrefabGenerator.Generate();
 
@@ -207,8 +208,23 @@ namespace LightRaiders.Editor
 
             session.AddComponent<SessionBootstrap>();
 
+            /* Death consequences (#18): the RaiderRespawner (server-only) drops a loot
+             * bag and respawns a dead Raider - owned by the same connection - after a
+             * delay. It shares the session NetworkManager, Raider prefab, and spawn
+             * points with PlayerSpawner but does NOT spawn on connect; PlayerSpawner
+             * still owns the initial spawn. */
+            RaiderRespawner respawner = session.AddComponent<RaiderRespawner>();
+            NetworkObject lootBagPrefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.LootBagPrefab);
+            if (lootBagPrefab == null)
+                throw new System.InvalidOperationException("Expected the LootBag prefab (with a NetworkObject) at '" + SessionAssetPaths.LootBagPrefab + "' but none was found — LootBagPrefabGenerator.Generate should have created it earlier in this run; rerun generation and check the log.");
+            respawner.SetNetworkManager(networkManager);
+            respawner.SetRaiderPrefab(raiderPrefab);
+            respawner.SetLootBagPrefab(lootBagPrefab);
+            respawner.SetSpawns(spawnPoints);
+
             EditorUtility.SetDirty(networkManager);
             EditorUtility.SetDirty(spawner);
+            EditorUtility.SetDirty(respawner);
 
             return networkManager;
         }
