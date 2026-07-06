@@ -244,6 +244,14 @@ namespace LightRaiders.Editor
             RaiderCameraRig rig = rigGo.AddComponent<RaiderCameraRig>();
             rig.SetNetworkManager(networkManager);
             EditorUtility.SetDirty(rig);
+
+            /* Debug-only prediction feel-test harness (#20 / ADR-0007): drives the
+             * transport latency simulator so the CSP with/without difference is
+             * feelable in MPPM (which otherwise runs at ~0ms). Lives on the rig
+             * GameObject with the other client-local wiring; F9 toggles per window. */
+            LatencyToggle latency = rigGo.AddComponent<LatencyToggle>();
+            latency.SetNetworkManager(networkManager);
+            EditorUtility.SetDirty(latency);
         }
 
         private static void BuildTargetSpawner(NetworkManager networkManager, Transform[] posts)

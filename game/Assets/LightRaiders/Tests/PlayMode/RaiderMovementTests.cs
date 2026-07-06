@@ -9,8 +9,11 @@ using UnityEngine.TestTools;
 namespace LightRaiders.Tests
 {
     /// <summary>
-    /// PlayMode tests for server-authoritative Raider movement. The default test
-    /// scene is empty, so each test builds its own floor, obstacle and spawn
+    /// PlayMode tests for Raider movement. Under CSP (ADR-0007) the server remains
+    /// authoritative — it re-runs the movement simulation inside PerformReplicate —
+    /// so these read the SERVER transform and stay valid; the owner-local prediction
+    /// and reconcile convergence are covered by RaiderPredictionTests. The default
+    /// test scene is empty, so each test builds its own floor, obstacle and spawn
     /// points. Assertions read transforms through the network-visible surface
     /// (server/client Objects.Spawned) and use inequality thresholds only.
     /// </summary>
