@@ -41,6 +41,9 @@ namespace LightRaiders
                 : null;
             if (respawner != null)
                 respawner.HandleRaiderDeath(owner, deathPosition);
+            else
+                // Misconfiguration: surface it loudly rather than silently vanishing a player.
+                Debug.LogWarning("RaiderDeathHandler found no RaiderRespawner on the session NetworkManager - the Raider despawns with no loot bag and no respawn. Wire a RaiderRespawner beside the NetworkManager.");
 
             // Removed from play; the respawn brings a fresh Raider, not this one.
             Despawn();

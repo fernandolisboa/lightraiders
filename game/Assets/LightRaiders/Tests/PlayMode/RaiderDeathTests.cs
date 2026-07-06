@@ -133,6 +133,11 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountLootBags(client.ClientManager.Objects.Spawned) == 1,
                 "The observer never saw the loot bag.",
                 15f);
+            NetworkObject clientBag = NetworkSessionHarness.FindLootBag(client.ClientManager.Objects.Spawned);
+            Assert.That(
+                NetworkSessionHarness.PlanarDistance(clientBag.transform.position, deathPosition),
+                Is.LessThan(0.6f),
+                "The observer's loot bag was not at the death position.");
 
             // Respawns after the delay at the spawn point, full Health, a fresh object, on all views.
             yield return _harness.WaitUntil(
@@ -163,17 +168,40 @@ namespace LightRaiders.Tests
                 "The client does not own its respawned Raider.",
                 15f);
             NetworkObject respawnedOwned = NetworkSessionHarness.FindOwnedRaider(client);
+            /* Attach a scripted provider to the fresh Raider immediately so it never
+             * polls real hardware input in a non-batch editor run (suite convention),
+             * and so its intents are the test's from here on. Neutral to start. */
+            ScriptedRaiderIntentProvider control = new ScriptedRaiderIntentProvider();
+            respawnedOwned.GetComponent<RaiderMovement>().SetIntentProvider(control);
 
-            // The dying client's camera follows its own respawned Raider.
+            // Full replicated Shield/Health on the observer's (owner's) view too, not just the server.
+            Health clientHealth = respawnedOwned.GetComponent<Health>();
+            yield return _harness.WaitUntil(
+                () => clientHealth.Shield == Health.MaxShield && clientHealth.CurrentHealth == Health.MaxHealth,
+                "The client view never showed the respawned Raider at full Shield/Health.",
+                15f);
+
+            // The dying client's camera follows its own respawned Raider (stationary under the neutral provider).
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarDistance(rig.transform.position, respawnedServer.transform.position + RaiderCameraRig.FollowOffset) < 0.6f,
                 "The camera did not follow the respawned Raider.",
                 15f);
 
-            // Input survives: a scripted fire intent on the respawned Raider spawns a projectile.
-            ScriptedRaiderIntentProvider refire = new ScriptedRaiderIntentProvider();
-            respawnedOwned.GetComponent<RaiderMovement>().SetIntentProvider(refire);
-            refire.Intent = new RaiderIntent
+            // Input survives - MOVE: a move intent advances the respawned Raider on the server.
+            Vector3 beforeMove = respawnedServer.transform.position;
+            control.Intent = new RaiderIntent { Move = new Vector2(1f, 0f) };
+            yield return _harness.WaitUntil(
+                () => NetworkSessionHarness.PlanarDistance(respawnedServer.transform.position, beforeMove) > 0.5f,
+                "The respawned Raider could not move - input did not survive respawn.",
+                15f);
+            control.Intent = new RaiderIntent();   // stop
+
+            // Input survives - FIRE: with movement stopped and no projectile in flight, a fire intent spawns one.
+            Assert.That(
+                NetworkSessionHarness.CountProjectiles(server.ServerManager.Objects.Spawned),
+                Is.EqualTo(0),
+                "Precondition: a projectile existed before the re-fire.");
+            control.Intent = new RaiderIntent
             {
                 AimPoint = respawnedServer.transform.position + new Vector3(10f, 0f, 0f),
                 FirePressed = true
