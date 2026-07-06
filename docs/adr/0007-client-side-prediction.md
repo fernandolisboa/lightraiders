@@ -1,9 +1,9 @@
 # Client-side prediction for Raider movement (CSP go/no-go)
 
-> **STATUS: DRAFT — decision pending the feel-test.** This ADR is scaffolded ahead of the
-> #20 build so the evaluation is recorded as it happens. The adopt/defer call is Fernando's,
-> made after feeling the with/without side-by-side under simulated latency. Do not treat the
-> Decision section as settled until the STATUS line says so.
+> **STATUS: BUILT — decision pending the feel-test.** The CSP config is implemented on
+> `feat/issue-20-prediction` and the full PlayMode suite is green (38/38). What remains is
+> Fernando's: feel the with/without side-by-side under simulated latency, then record the
+> adopt/defer call below. Do not treat the Decision section as settled until this line says so.
 
 ## Context
 
@@ -38,8 +38,16 @@ what the latency side-by-side actually felt like.
 
 ## Evaluated / Felt / Decided
 
-- **Evaluated:** _(what was built and measured — latency values tried, config: facing
-  predicted or not, reconcile cadence)_
+- **Evaluated:** Built the full CSP config. RaiderMovement is a `TickNetworkBehaviour` with
+  `[Replicate]`/`[Reconcile]`; **position AND facing are predicted** (ADR-0001 decoupling kept);
+  reconcile drives the transform (NetworkTransform dropped for the Raider) and `_enablePrediction`
+  is set on the NetworkObject so observers get reconcile/state. **Fire stays server-only**
+  (ADR-0005) — `FirePressed` rides the replicate but is consumed only on the server branch, no
+  client-predicted projectiles. Reconcile is built every PostTick (no throttling). A `LatencyToggle`
+  debug component drives `TransportManager.LatencySimulator` (F9 toggle, F10/F11 ±20ms). Automated
+  guards pass owner-local prediction + reconcile convergence at 0ms and under 80ms one-way simulated
+  latency; full PlayMode suite green (38/38, only the #27 flake as an occasional red — it passed
+  this run). _To measure by feel: 0ms baseline, ~100ms, ~200ms, with F9 on/off._
 - **Felt:** _(the honest subjective read at each latency — 0ms / ~100ms / ~200ms, with vs.
   without prediction; rubber-banding, jitter, aim responsiveness)_
 - **Decided:** _(adopt → merged with suite green; or defer → preserved on
