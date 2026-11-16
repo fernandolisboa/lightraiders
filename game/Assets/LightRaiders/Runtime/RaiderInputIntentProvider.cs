@@ -14,6 +14,7 @@ namespace LightRaiders
 
         private InputAction _moveAction;
         private InputAction _attackAction;
+        private InputAction _interactAction;
         private Camera _camera;
 
         public RaiderIntent GetIntent()
@@ -35,6 +36,12 @@ namespace LightRaiders
                 _attackAction.Enable();
             }
 
+            if (_interactAction == null)
+            {
+                _interactAction = _actions.FindAction("Player/Interact", throwIfNotFound: true);
+                _interactAction.Enable();
+            }
+
             return new RaiderIntent
             {
                 Move = _moveAction.ReadValue<Vector2>(),
@@ -44,6 +51,8 @@ namespace LightRaiders
                  * when tick rate < frame rate and double-report when tick rate > frame
                  * rate. The server cooldown owns the fire rate (PRD: level-state at 30Hz). */
                 FirePressed = _attackAction.IsPressed(),
+                // Same level semantics as fire; the action's Hold interaction does not gate IsPressed.
+                Interact = _interactAction.IsPressed(),
             };
         }
 
@@ -76,6 +85,7 @@ namespace LightRaiders
         {
             _moveAction?.Disable();
             _attackAction?.Disable();
+            _interactAction?.Disable();
         }
     }
 }

@@ -237,7 +237,7 @@ namespace LightRaiders.Editor
             return networkManager;
         }
 
-        private static void BuildCameraRig(NetworkManager networkManager)
+        internal static void BuildCameraRig(NetworkManager networkManager)
         {
             GameObject rigGo = new GameObject(RaiderCameraRigName);
             // Sole camera and sole AudioListener: the sweep removed the scene default.
@@ -260,6 +260,14 @@ namespace LightRaiders.Editor
             LatencyToggle latency = rigGo.AddComponent<LatencyToggle>();
             latency.SetNetworkManager(networkManager);
             EditorUtility.SetDirty(latency);
+
+            /* Phase 2 raid HUD (#35): current Layer name, plus a fade on every Layer
+             * change. Client-local, so it rides the rig with the camera. */
+            ScreenFade fade = rigGo.AddComponent<ScreenFade>();
+            RaidHud raidHud = rigGo.AddComponent<RaidHud>();
+            raidHud.SetNetworkManager(networkManager);
+            raidHud.SetFade(fade);
+            EditorUtility.SetDirty(raidHud);
         }
 
         private static void BuildTargetSpawner(NetworkManager networkManager, Transform[] posts)

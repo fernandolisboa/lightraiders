@@ -34,6 +34,12 @@ namespace LightRaiders
 
         private float _verticalVelocity;
 
+        /* Interact cooldown (0.5s): holding the use control after a door transit
+         * must not bounce the Raider straight back. Door exit points also sit
+         * outside the use radius; this is the second guard. 0 = ready. */
+        public const float InteractCooldownSeconds = 0.5f;
+        private uint _nextInteractTick;
+
         /// <summary>
         /// Owner-side input for one tick. FishNet serializes public fields; the
         /// tick field is managed by the framework. Facing (AimPoint) and fire
@@ -45,6 +51,7 @@ namespace LightRaiders
             public Vector2 Move;
             public Vector3 AimPoint;
             public bool FirePressed;
+            public bool Interact;
 
             private uint _tick;
 
@@ -53,6 +60,7 @@ namespace LightRaiders
                 Move = intent.Move;
                 AimPoint = intent.AimPoint;
                 FirePressed = intent.FirePressed;
+                Interact = intent.Interact;
                 _tick = 0;
             }
 
@@ -71,14 +79,18 @@ namespace LightRaiders
             public Vector3 Position;
             public Quaternion Rotation;
             public float VerticalVelocity;
+            /* Predicted interact cooldown: a door transit replays on the owner, so
+             * the tick it unlocks again must be reconciled like position is. */
+            public uint NextInteractTick;
 
             private uint _tick;
 
-            public ReconcileData(Vector3 position, Quaternion rotation, float verticalVelocity)
+            public ReconcileData(Vector3 position, Quaternion rotation, float verticalVelocity, uint nextInteractTick)
             {
                 Position = position;
                 Rotation = rotation;
                 VerticalVelocity = verticalVelocity;
+                NextInteractTick = nextInteractTick;
                 _tick = 0;
             }
 
@@ -139,7 +151,7 @@ namespace LightRaiders
              * its own copy only as a fallback for a dropped server reconcile. We
              * have no platform/trigger dependency, so PostTick timing is purely to
              * capture post-movement state. */
-            ReconcileData rd = new ReconcileData(transform.position, transform.rotation, _verticalVelocity);
+            ReconcileData rd = new ReconcileData(transform.position, transform.rotation, _verticalVelocity, _nextInteractTick);
             PerformReconcile(rd);
         }
 
@@ -164,6 +176,12 @@ namespace LightRaiders
                 ApplyFacing(rd.AimPoint);
             Move(hasInput ? rd.Move : Vector2.zero, delta);
 
+            /* Doors (#35): predicted like movement - the owner teleports locally the
+             * same tick the server does, and reconcile corrects any disagreement.
+             * Only the server changes the Layer (observer scoping is authoritative). */
+            if (hasInput && rd.Interact)
+                TryUseDoor(rd.GetTick());
+
             /* Fire is SERVER-ONLY (ADR-0005): the server owns the projectile, the
              * cooldown, and the muzzle origin from the authoritative transform.
              * FirePressed travels in the replicate but is never acted on by the
@@ -178,10 +196,45 @@ namespace LightRaiders
             }
         }
 
+        private void TryUseDoor(uint tick)
+        {
+            if (tick < _nextInteractTick)
+                return;
+
+            Door door = Door.FindUsable(transform.position);
+            if (door == null)
+                return;
+
+            Door destination = door.Linked;
+            Teleport(destination.ExitPosition);
+            _nextInteractTick = tick + (uint)Mathf.CeilToInt(InteractCooldownSeconds * (float)base.TimeManager.TickRate);
+
+            if (IsServerInitialized)
+            {
+                LayerService layers = base.NetworkManager.GetComponent<LayerService>();
+                if (layers != null)
+                    layers.ServerMoveRaider(base.NetworkObject, destination.LayerId);
+            }
+        }
+
+        /// <summary>
+        /// Instant relocation inside the simulation (doors now; Waygates later).
+        /// Same CharacterController dance as a reconcile; facing is untouched
+        /// (ADR-0001) and vertical velocity resets so a fall never carries over.
+        /// </summary>
+        private void Teleport(Vector3 position)
+        {
+            _controller.enabled = false;
+            transform.position = position;
+            _controller.enabled = true;
+            _verticalVelocity = GroundedGravity;
+        }
+
         [Reconcile]
         private void PerformReconcile(ReconcileData rd, Channel channel = Channel.Unreliable)
         {
             _verticalVelocity = rd.VerticalVelocity;
+            _nextInteractTick = rd.NextInteractTick;
 
             /* The CharacterController must be disabled before its Transform is
              * written, or the physics body lags a tick behind the visual position
