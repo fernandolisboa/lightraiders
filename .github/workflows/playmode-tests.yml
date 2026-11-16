@@ -1,0 +1,73 @@
+# Runs the Unity PlayMode suite on GitHub Actions via GameCI (Docker image
+# unityci/editor for the version in game/ProjectSettings/ProjectVersion.txt).
+#
+# Needs three repository secrets — see docs/ci.md for how to get them:
+#   UNITY_LICENSE   contents of the Unity_lic.ulf file (Unity Personal)
+#   UNITY_EMAIL     Unity account email
+#   UNITY_PASSWORD  Unity account password
+# Until UNITY_LICENSE exists the job skips with a notice instead of failing.
+name: PlayMode tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: playmode-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  playmode:
+    name: PlayMode
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+    steps:
+      - name: Skip when the Unity license secret is missing
+        if: env.UNITY_LICENSE == ''
+        run: echo "::notice::UNITY_LICENSE secret not set - skipping PlayMode tests. See docs/ci.md."
+
+      - name: Checkout (with LFS)
+        if: env.UNITY_LICENSE != ''
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # Library/ is Unity's import cache; restoring it cuts a cold import
+      # (FishNet + URP) from many minutes to a few.
+      - name: Cache Library
+        if: env.UNITY_LICENSE != ''
+        uses: actions/cache@v4
+        with:
+          path: game/Library
+          key: Library-${{ hashFiles('game/Assets/**', 'game/Packages/**', 'game/ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Run PlayMode tests
+        if: env.UNITY_LICENSE != ''
+        id: tests
+        uses: game-ci/unity-test-runner@v4
+        with:
+          projectPath: game
+          testMode: playmode
+          artifactsPath: artifacts
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: PlayMode test results
+
+      - name: Upload test results
+        if: always() && env.UNITY_LICENSE != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: playmode-results
+          path: ${{ steps.tests.outputs.artifactsPath }}
+          if-no-files-found: ignore

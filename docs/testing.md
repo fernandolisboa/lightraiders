@@ -1,5 +1,7 @@
 # Testing — CLI invocation and constraints
 
+The same PlayMode suite also runs in CI on GitHub Actions; see [`docs/ci.md`](ci.md) for setup.
+
 ## Prerequisite: the Unity editor must be CLOSED
 
 Batch-mode runs lock `game/Library`. If the editor (or any MPPM virtual player) is
