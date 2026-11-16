@@ -68,8 +68,14 @@ namespace LightRaiders
 
             foreach (NetworkObject networkObject in _networkManager.ClientManager.Objects.Spawned.Values)
             {
-                if (networkObject != null && networkObject.IsOwner && networkObject.GetComponent<Raider>() != null)
-                    return networkObject.transform;
+                if (networkObject == null || !networkObject.IsOwner)
+                    continue;
+
+                /* Follow the smoothed graphical child, not the tick-stepped root,
+                 * or the whole view judders at the tick rate (ADR-0007, #32). */
+                Raider raider = networkObject.GetComponent<Raider>();
+                if (raider != null)
+                    return raider.VisualTransform;
             }
 
             return null;

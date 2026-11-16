@@ -1,5 +1,6 @@
 using System;
 using FishNet.Editing;
+using FishNet.Component.Transforming.Beta;
 using FishNet.Object;
 using UnityEditor;
 using UnityEngine;
@@ -30,7 +31,7 @@ namespace LightRaiders.Editor
              * demo prefab; _predictionType 0 (CharacterController/"Other") and the
              * default smoothing already match, so only this flag differs. */
             EnablePrediction(networkObject);
-            root.AddComponent<Raider>();
+            Raider raider = root.AddComponent<Raider>();
 
             /* Raiders are damageable as of #17: a Health of Side.Raider so hostile
              * emitter shots (Side.Hostile) strip its Shield then Health, while Raider
@@ -44,9 +45,19 @@ namespace LightRaiders.Editor
              * after a delay. Server-only; harmless on a Raider that never dies. */
             root.AddComponent<RaiderDeathHandler>();
 
+            /* Smoothed graphical child (#32): under CSP the root moves only on ticks
+             * (30Hz) and reconcile writes it directly, so anything rendered straight
+             * off the root steps and snaps. Visual and AimIndicator hang off this
+             * child, whose NetworkTickSmoother interpolates it toward the root every
+             * frame - the same arrangement as FishNet's CC-prediction demo prefab. */
+            GameObject graphics = new GameObject("Graphics");
+            graphics.transform.SetParent(root.transform, false);
+            AddTickSmoother(graphics, root.transform);
+            SetGraphics(raider, graphics.transform);
+
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
-            visual.transform.SetParent(root.transform);
+            visual.transform.SetParent(graphics.transform);
             visual.transform.localPosition = new Vector3(0f, 1f, 0f);
             /* The root CharacterController is now the sole collider; an overlapping
              * child collider would make the CC sweep ghost-collide against itself. */
@@ -55,12 +66,12 @@ namespace LightRaiders.Editor
 
             /* Graybox aim indicator: a bar along local +Z (= transform.forward) so the
              * predicted facing is readable on every client. RaiderMovement's replicate
-             * sets the ROOT rotation (owner + server + spectators); children ride along
-             * rigidly. Spans local z 0.5..1.3: flush with the capsule surface,
+             * sets the ROOT rotation (owner + server + spectators); the smoothed
+             * Graphics child follows it. Spans local z 0.5..1.3: flush with the capsule surface,
              * protruding 0.8 at mid-height. */
             GameObject indicator = GameObject.CreatePrimitive(PrimitiveType.Cube);
             indicator.name = "AimIndicator";
-            indicator.transform.SetParent(root.transform);
+            indicator.transform.SetParent(graphics.transform);
             indicator.transform.localPosition = new Vector3(0f, 1f, 0.9f);
             indicator.transform.localScale = new Vector3(0.15f, 0.15f, 0.8f);
             /* Same rule as Visual: the root CharacterController is the sole collider -
@@ -105,6 +116,29 @@ namespace LightRaiders.Editor
                 throw new InvalidOperationException(
                     "FishNet renamed NetworkObject serialized field '_enablePrediction' — update RaiderPrefabGenerator.");
             enablePrediction.boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AddTickSmoother(GameObject graphics, Transform target)
+        {
+            NetworkTickSmoother smoother = graphics.AddComponent<NetworkTickSmoother>();
+            SerializedObject so = new SerializedObject(smoother);
+            SerializedProperty targetTransform = so.FindProperty("_initializationSettings.TargetTransform");
+            if (targetTransform == null)
+                throw new InvalidOperationException(
+                    "FishNet renamed NetworkTickSmoother field '_initializationSettings.TargetTransform' — update RaiderPrefabGenerator.");
+            targetTransform.objectReferenceValue = target;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetGraphics(Raider raider, Transform graphics)
+        {
+            SerializedObject so = new SerializedObject(raider);
+            SerializedProperty graphicsProperty = so.FindProperty("_graphics");
+            if (graphicsProperty == null)
+                throw new InvalidOperationException(
+                    "Raider renamed serialized field '_graphics' — update RaiderPrefabGenerator.");
+            graphicsProperty.objectReferenceValue = graphics;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

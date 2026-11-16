@@ -53,9 +53,10 @@ Why now rather than at the PvP milestone:
   this run). _To measure by feel: 0ms baseline, ~100ms, ~200ms, with F9 on/off._
 - **Felt:** Fernando ran the MPPM side-by-side with the `LatencyToggle` at 0ms and under
   simulated latency, with and without prediction, and judged it good enough to adopt. Per-latency
-  notes were not recorded. Known follow-up: the Raider has no graphical smoothing yet
-  (`_graphicalObject` unset, no tick smoother), so at 30Hz ticks the root moves in tick steps and
-  reconcile corrections snap. Tracked in #32.
+  notes were not recorded. The build had no graphical smoothing, so at 30Hz ticks the root
+  moved in tick steps and reconcile corrections snapped. Fixed for adoption (#32): Visual and
+  AimIndicator now hang off a `Graphics` child with a `NetworkTickSmoother`, and the camera rig and
+  world-space bars follow that child.
 - **Decided:** Adopt (2026-11-16). Before merge, a code review found and fixed:
   - Input-less replicates (spawn, respawn, input underrun, spectator future ticks) were snapping
     facing to world origin and could fire. These are now gated on `ReplicateState.Created`.
