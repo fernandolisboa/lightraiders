@@ -250,14 +250,15 @@ namespace LightRaiders
                  * the site, and observers see it through the fixture's SyncVars. */
                 if (IsServerInitialized)
                 {
+                    /* A started channel consumes the press (the latch): holding the key
+                     * down must not silently restart a channel that damage just
+                     * cancelled. Server-only, so the owner learns it via reconcile.
+                     * A Hatch that refuses (no key, busy, other Layer) falls through
+                     * to Exfil rather than blocking it. */
                     Hatch hatch = Hatch.FindNearest(transform.position, base.NetworkManager, Hatch.UseRadius);
-                    if (hatch != null)
+                    if (hatch != null && hatch.ServerTryStartChannel(base.NetworkObject))
                     {
-                        /* A started channel consumes the press (the latch): holding the
-                         * key down must not silently restart a channel that damage just
-                         * cancelled. Server-only, so the owner learns it via reconcile. */
-                        if (hatch.ServerTryStartChannel(base.NetworkObject))
-                            _interactLatched = true;
+                        _interactLatched = true;
                         return;
                     }
 

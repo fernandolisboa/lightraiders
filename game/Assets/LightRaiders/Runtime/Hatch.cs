@@ -71,12 +71,15 @@ namespace LightRaiders
 
         public override void OnStopNetwork() => _active.Remove(this);
 
-        public override void OnStartServer() => base.TimeManager.OnTick += ServerTick;
+        /* PostTick, not Tick: every hit of tick T (projectiles resolve in OnTick)
+         * has landed before the channel is judged, so a hit on the final tick
+         * cancels instead of losing to completion by subscription order. */
+        public override void OnStartServer() => base.TimeManager.OnPostTick += ServerTick;
 
         public override void OnStopServer()
         {
             if (base.TimeManager != null)
-                base.TimeManager.OnTick -= ServerTick;
+                base.TimeManager.OnPostTick -= ServerTick;
             ClearChannel();
         }
 
@@ -110,8 +113,8 @@ namespace LightRaiders
             return true;
         }
 
-        /* Damage can land mid-tick from a projectile; flag it and resolve on the
-         * Hatch's own tick so cancel and completion are ordered in one place. */
+        /* Damage can land mid-tick from a projectile; flag it and resolve in the
+         * Hatch's PostTick, where cancel is checked before completion. */
         private void OnChannellerDamaged() => _cancelRequested = true;
 
         private void ServerTick()
