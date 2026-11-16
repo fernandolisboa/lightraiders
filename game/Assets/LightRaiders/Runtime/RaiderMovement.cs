@@ -262,8 +262,10 @@ namespace LightRaiders
                     }
 
                     ExfilSite site = ExfilSite.FindNearest(transform.position, base.NetworkManager, ExfilSite.UseRadius);
-                    if (site != null && LayerMember.ServerLayerOf(site) == LayerMember.ServerLayerOf(this))
-                        site.ServerCall();
+                    /* A successful call consumes the press (the latch), so a held key
+                     * never re-calls the site the moment it returns to Idle. */
+                    if (site != null && LayerMember.ServerLayerOf(site) == LayerMember.ServerLayerOf(this) && site.ServerCall())
+                        _interactLatched = true;
                 }
                 return;
             }
