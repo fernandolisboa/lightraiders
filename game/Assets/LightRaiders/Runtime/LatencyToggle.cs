@@ -15,8 +15,10 @@ namespace LightRaiders
     /// Present in every window (it lives in the shared scene), so each Network
     /// manager simulates its own outgoing latency; <c>_simulateHost</c> stays true
     /// so the main-editor owner feels its OWN round-trip too — the whole point of
-    /// the comparison. A plain MonoBehaviour: never networked, never shipped past
-    /// the graybox. Keys use the new Input System device directly (no action asset).
+    /// the comparison. A plain MonoBehaviour, never networked. It is inert in
+    /// release (non-development) builds: no keys, no overlay, no simulation, so a
+    /// shipped player can never add latency to a session. Keys use the new Input
+    /// System device directly (no action asset).
     /// </summary>
     public sealed class LatencyToggle : MonoBehaviour
     {
@@ -43,8 +45,19 @@ namespace LightRaiders
         /// </summary>
         public void SetNetworkManager(NetworkManager networkManager) => _networkManager = networkManager;
 
+        private void Awake()
+        {
+            /* Release builds: disable this component so Start/Update/OnGUI never
+             * run. The editor and development builds report isDebugBuild = true. */
+            if (!Debug.isDebugBuild)
+                enabled = false;
+        }
+
         private void Start()
         {
+            if (!enabled)
+                return;
+
             _enabled = _enabledOnStart;
             Apply();
         }

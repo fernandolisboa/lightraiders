@@ -1,9 +1,8 @@
 # Client-side prediction for Raider movement (CSP go/no-go)
 
-> **STATUS: BUILT — decision pending the feel-test.** The CSP config is implemented on
-> `feat/issue-20-prediction` and the full PlayMode suite is green (38/38). What remains is
-> Fernando's: feel the with/without side-by-side under simulated latency, then record the
-> adopt/defer call below. Do not treat the Decision section as settled until this line says so.
+> **STATUS: ACCEPTED (2026-11-16).** Fernando felt the with/without side-by-side under
+> simulated latency and chose to adopt. The CSP config merges to `main` from
+> `feat/issue-20-prediction` after code review and a green PlayMode gate.
 
 ## Context
 
@@ -33,8 +32,12 @@ Reconcile + the CC enabled-toggle dance). Build plan:
 
 ## Decision
 
-_TBD after the feel-test._ Record here: adopt or defer, and the one-line reason grounded in
-what the latency side-by-side actually felt like.
+**Adopt client-side prediction for Raider movement and facing now.** Fire stays server-only.
+
+Why now rather than at the PvP milestone:
+- The slice is played host + relay over the internet, so every non-host friend has real RTT. That is exactly where the server-authoritative model's input lag shows.
+- Phase 2 builds every Layer transition (doors, Waygates, Hatches) as a teleport on top of the movement model. Migrating after those exist would cost more than migrating now.
+- The expensive part (the rewrite and its tests) was already built and green, and the PvP milestone would have reopened the question anyway.
 
 ## Evaluated / Felt / Decided
 
@@ -48,10 +51,19 @@ what the latency side-by-side actually felt like.
   guards pass owner-local prediction + reconcile convergence at 0ms and under 80ms one-way simulated
   latency; full PlayMode suite green (38/38, only the #27 flake as an occasional red — it passed
   this run). _To measure by feel: 0ms baseline, ~100ms, ~200ms, with F9 on/off._
-- **Felt:** _(the honest subjective read at each latency — 0ms / ~100ms / ~200ms, with vs.
-  without prediction; rubber-banding, jitter, aim responsiveness)_
-- **Decided:** _(adopt → merged with suite green; or defer → preserved on
-  `feat/issue-20-prediction` + this ADR as the resurrection point)_
+- **Felt:** Fernando ran the MPPM side-by-side with the `LatencyToggle` at 0ms and under
+  simulated latency, with and without prediction, and judged it good enough to adopt. Per-latency
+  notes were not recorded. Known follow-up: the Raider has no graphical smoothing yet
+  (`_graphicalObject` unset, no tick smoother), so at 30Hz ticks the root moves in tick steps and
+  reconcile corrections snap. Tracked in #32.
+- **Decided:** Adopt (2026-11-16). Before merge, a code review found and fixed:
+  - Input-less replicates (spawn, respawn, input underrun, spectator future ticks) were snapping
+    facing to world origin and could fire. These are now gated on `ReplicateState.Created`.
+  - `LatencyToggle` was live in release builds. It is now inert outside the editor and development
+    builds.
+  - The prediction tests could pass without prediction. They now assert that the owner leads the
+    server under latency, and that position and facing converge at rest.
+  - Stale NetworkTransform-era comments were updated.
 
 ## Reopening condition
 

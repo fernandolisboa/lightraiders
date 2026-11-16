@@ -84,7 +84,7 @@ namespace LightRaiders
 
         private void LateUpdate()
         {
-            // LateUpdate: after NetworkTransform has moved the tracked objects this frame.
+            // LateUpdate: after the tracked objects have moved this frame (prediction/reconcile for Raiders, NetworkTransform for projectiles).
             if (_networkManager == null || !_networkManager.Initialized)
             {
                 ClearAllBars();

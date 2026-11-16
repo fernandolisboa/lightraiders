@@ -87,10 +87,10 @@ namespace LightRaiders
             public void SetTick(uint value) => _tick = value;
         }
 
-        /* AimPoint starts as the NaN sentinel, not default(Vector3): zero is a
-         * VALID world point and would snap a freshly spawned Raider to face world
-         * origin before the owner's first replicate carries a real aim. Facing
-         * discards a non-finite aim by keeping current rotation. */
+        /* The owner's fallback intent when it has no provider: AimPoint is the
+         * NaN sentinel, not default(Vector3), because zero is a VALID world point.
+         * Facing discards a non-finite aim by keeping current rotation. Default
+         * (input-less) replicates are guarded separately in PerformReplicate. */
         private RaiderIntent _neutralIntent = new RaiderIntent { AimPoint = new Vector3(float.NaN, 0f, float.NaN) };
 
         /// <summary>
@@ -148,10 +148,21 @@ namespace LightRaiders
         {
             float delta = (float)base.TimeManager.TickDelta;
 
+            /* FishNet runs this with default(ReplicateData) whenever no real input
+             * exists for the tick: the server before the owner's first input
+             * arrives (every spawn and respawn) or on an input underrun, and
+             * spectators on future ticks during a replay. A default AimPoint is
+             * (0,0,0) - a VALID world point - so acting on it would snap facing to
+             * world origin and reconcile that wrong facing back to the owner.
+             * Without Created input, keep current facing and never fire; still
+             * run Move with zero input so gravity keeps settling the capsule. */
+            bool hasInput = state.ContainsCreated();
+
             /* Facing before motion for readability (ADR-0001 decoupling). Runs on
              * owner + server + spectators so aim is observed everywhere. */
-            ApplyFacing(rd.AimPoint);
-            Move(rd.Move, delta);
+            if (hasInput)
+                ApplyFacing(rd.AimPoint);
+            Move(hasInput ? rd.Move : Vector2.zero, delta);
 
             /* Fire is SERVER-ONLY (ADR-0005): the server owns the projectile, the
              * cooldown, and the muzzle origin from the authoritative transform.
@@ -159,7 +170,7 @@ namespace LightRaiders
              * predicting owner/spectator — no client-predicted projectiles. The
              * per-Raider cooldown (RaiderWeapon) makes a repeated server-side call
              * within a tick idempotent. */
-            if (IsServerInitialized)
+            if (IsServerInitialized && hasInput)
             {
                 _weapon ??= GetComponent<RaiderWeapon>();
                 if (_weapon != null)

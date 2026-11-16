@@ -145,10 +145,12 @@ namespace LightRaiders.Tests
 
             scripted.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
-            // 15s: 30Hz ticks plus 2-tick interpolation on the observing client.
+            /* 15s: 30Hz ticks plus reconcile/state forwarding to the observing
+             * client. Observers only receive that state when the Raider's
+             * NetworkObject has _enablePrediction on (RaiderPrefabGenerator). */
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarDistance(raiderOnB.transform.position, baseline) > 0.5f,
-                "Client B never observed A's Raider moving.",
+                "Client B never observed A's Raider moving (check _enablePrediction on the Raider NetworkObject).",
                 15f);
         }
 
@@ -192,14 +194,15 @@ namespace LightRaiders.Tests
             yield return _harness.SettleServerRaider(raiderBOnServer);
             Vector3 baselineA = raiderAOnServer.transform.position;
 
-            /* The component only sends intent when IsOwner, so B's provider on
-             * A's Raider sends nothing; FishNet's RequireOwnership is the second
-             * line of defense, deliberately untested here. */
+            /* Only the owner authors replicate input (BuildMoveData returns
+             * default when !IsOwner), so B's provider on A's Raider is never
+             * polled; the server accepts replicate input only from the owner -
+             * the second line of defense, deliberately untested here. */
             ScriptedRaiderIntentProvider hostileProvider = new ScriptedRaiderIntentProvider();
             hostileProvider.Intent = new RaiderIntent { Move = new Vector2(1f, 0f) };
             raiderAOnB.GetComponent<RaiderMovement>().SetIntentProvider(hostileProvider);
 
-            // Positive control: B moves its own Raider, proving ticks/RPCs flow.
+            // Positive control: B moves its own Raider, proving ticks and replicates flow.
             Vector3 baselineB = raiderBOnServer.transform.position;
             ownProvider.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 

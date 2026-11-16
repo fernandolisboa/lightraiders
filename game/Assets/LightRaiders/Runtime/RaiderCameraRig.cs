@@ -48,7 +48,7 @@ namespace LightRaiders
 
         private void LateUpdate()
         {
-            // LateUpdate: after NetworkTransform has moved the target this frame.
+            // LateUpdate: after the target's tick movement and any reconcile this frame.
             if (_target == null)
                 _target = FindOwnedRaiderTransform();
 

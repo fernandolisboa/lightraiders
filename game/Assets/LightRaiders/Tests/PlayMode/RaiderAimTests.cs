@@ -98,9 +98,8 @@ namespace LightRaiders.Tests
 
             scripted.Intent = new RaiderIntent { AimPoint = firstAim };
 
-            /* Tolerance 5 degrees, honestly: Quaternion32 packing error is ~0.2
-             * degrees and this reads the server transform directly - the slack is
-             * for the tick boundary, not the wire. */
+            /* Tolerance 5 degrees: this reads the server transform directly, so
+             * the slack is for the tick boundary, not the wire. */
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarAngle(serverRaider.transform.forward, firstAim - basePos) < 5f,
                 "Server facing never converged on the first aim point.");
@@ -191,14 +190,14 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.PlanarAngle(raiderOnServer.transform.forward, aim - basePos) < 5f,
                 "Positive control failed: server facing never converged.");
 
-            /* Tolerance 5 degrees, honestly: Quaternion32 smallest-three packing
-             * (10 bits per component) contributes ~0.2 degrees and the observer's
-             * interpolation snap band ~1 degree; the rest is slack, not cover for
-             * a wrong bearing (the anti-vacuity gap is 30+ degrees). 15s: 30Hz
-             * ticks plus 2-tick interpolation on the observing client. */
+            /* Tolerance 5 degrees: the observer's facing is set from forwarded
+             * replicate/reconcile state, so the slack covers the tick boundary,
+             * not a wrong bearing (the anti-vacuity gap is 30+ degrees). 15s:
+             * 30Hz ticks plus state forwarding to the observing client, which
+             * needs _enablePrediction on the Raider NetworkObject. */
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarAngle(raiderOnB.transform.forward, aim - basePos) < 5f,
-                "Client B never observed A's facing.",
+                "Client B never observed A's facing (check _enablePrediction on the Raider NetworkObject).",
                 15f);
         }
 
