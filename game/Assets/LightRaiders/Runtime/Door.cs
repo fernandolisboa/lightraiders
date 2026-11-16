@@ -53,45 +53,12 @@ namespace LightRaiders
             b._linked = a;
         }
 
-        /// <summary>Spacing between arrival slots: a capsule diameter plus slack.</summary>
-        public const float ArrivalSlotSpacing = 1.2f;
-        private const float ArrivalGroundClearance = 0.05f;
-
-        /* Slot offsets in the door's frame (x = right, y = forward from the exit
-         * point). Never back toward the door, so no slot comes closer to it than
-         * the exit point itself. */
-        private static readonly Vector2[] ArrivalSlots =
-        {
-            new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(-1f, 0f),
-            new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(-1f, 1f),
-        };
-
         /// <summary>
         /// Where a Raider arriving through the linked door lands: the exit point,
-        /// or the first free slot around it when someone already stands there, so
-        /// a follower never spawns inside the player ahead. Physics-only and
-        /// deterministic for a given world state; if every slot is taken the exit
-        /// point is used anyway. The owner cannot see Raiders in the destination
-        /// Layer before arriving, so it may predict the plain exit point where the
-        /// server picks a slot; the next reconcile corrects that small offset.
+        /// or the first free slot around it (<see cref="ArrivalSlots"/>).
         /// </summary>
         public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight)
-        {
-            Vector3 exit = ExitPosition;
-            Vector3 right = transform.right;
-            Vector3 forward = transform.forward;
-            float bottom = capsuleRadius + ArrivalGroundClearance;
-            float top = Mathf.Max(bottom, capsuleHeight - capsuleRadius);
-            for (int i = 0; i < ArrivalSlots.Length; i++)
-            {
-                Vector3 candidate = exit + (right * ArrivalSlots[i].x + forward * ArrivalSlots[i].y) * ArrivalSlotSpacing;
-                if (!Physics.CheckCapsule(candidate + Vector3.up * bottom, candidate + Vector3.up * top, capsuleRadius,
-                        Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    return candidate;
-            }
-
-            return exit;
-        }
+            => ArrivalSlots.Find(ExitPosition, transform.right, transform.forward, capsuleRadius, capsuleHeight);
 
         /// <summary>
         /// The nearest linked door within reach of <paramref name="position"/>, or

@@ -112,6 +112,34 @@ namespace LightRaiders.Tests
         }
 
         [Test]
+        public void WaygatePair_StandsOnTheSurface_InTwoDifferentDistricts_ClearOfDoors()
+        {
+            Transform[] posts = _layout.WaygatePosts;
+            Assert.That(posts.Length, Is.EqualTo(2));
+            Assert.That(posts, Has.All.Not.Null);
+            District a = posts[0].GetComponentInParent<District>();
+            District b = posts[1].GetComponentInParent<District>();
+            Assert.IsNotNull(a);
+            Assert.IsNotNull(b);
+            Assert.That(a.Index, Is.Not.EqualTo(b.Index), "Both gates in one district.");
+
+            foreach (Transform post in posts)
+            {
+                Assert.That(post.GetComponentInParent<LayerInfo>().LayerId, Is.EqualTo(LayerMember.Surface));
+                Vector3 arrival = post.position + post.forward * Waygate.ExitDistance;
+                foreach (Door door in Doors)
+                {
+                    Vector3 toPost = door.transform.position - post.position;
+                    Vector3 toArrival = door.transform.position - arrival;
+                    toPost.y = 0f;
+                    toArrival.y = 0f;
+                    Assert.That(toPost.magnitude, Is.GreaterThan(Door.UseRadius + Waygate.UseRadius), post.name + " overlaps " + door.name + "'s reach.");
+                    Assert.That(toArrival.magnitude, Is.GreaterThan(Door.UseRadius + 0.25f), post.name + "'s arrival is in " + door.name + "'s reach.");
+                }
+            }
+        }
+
+        [Test]
         public void SpawnPoints_AreOnTheSurface_TwoPerDistrict()
         {
             Assert.That(_layout.SpawnPoints.Length, Is.EqualTo(MatinsGenerator.DistrictCount * 2));
