@@ -130,6 +130,21 @@ namespace LightRaiders.Tests
             }
         }
 
+        /// <summary>
+        /// WaitUntil whose failure message is built at timeout, so it can report
+        /// the live state that made the condition fail (for diagnosing flakes).
+        /// </summary>
+        public IEnumerator WaitUntil(Func<bool> condition, Func<string> describeFailure, float timeoutSeconds = 10f)
+        {
+            float deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (!condition())
+            {
+                if (Time.realtimeSinceStartup > deadline)
+                    Assert.Fail(describeFailure() + " (timed out after " + timeoutSeconds + "s)");
+                yield return null;
+            }
+        }
+
         public static int CountRaiders(IReadOnlyDictionary<int, NetworkObject> spawned)
         {
             int count = 0;

@@ -196,9 +196,24 @@ namespace LightRaiders.Tests
              * interpolation snap band ~1 degree; the rest is slack, not cover for
              * a wrong bearing (the anti-vacuity gap is 30+ degrees). 15s: 30Hz
              * ticks plus 2-tick interpolation on the observing client. */
+            /* Issue #27: this wait flakes intermittently. The lazy message records
+             * the state at timeout - is B's facing frozen at the old bearing or
+             * partway there (slow NetworkTransform rate), did the server's facing
+             * regress, and are both ends still ticking - so the next red run
+             * names the cause instead of only the symptom. */
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarAngle(raiderOnB.transform.forward, aim - basePos) < 5f,
-                "Client B never observed A's facing.",
+                () => "Client B never observed A's facing."
+                    + " B angle=" + NetworkSessionHarness.PlanarAngle(raiderOnB.transform.forward, aim - basePos).ToString("F1")
+                    + " server angle=" + NetworkSessionHarness.PlanarAngle(raiderOnServer.transform.forward, aim - basePos).ToString("F1")
+                    + " B forward=" + raiderOnB.transform.forward
+                    + " B pos=" + raiderOnB.transform.position
+                    + " server pos=" + raiderOnServer.transform.position
+                    + " B spawned=" + raiderOnB.IsSpawned
+                    + " B client started=" + clientB.ClientManager.Started
+                    + " server tick=" + server.TimeManager.Tick
+                    + " B tick=" + clientB.TimeManager.Tick
+                    + ".",
                 15f);
         }
 
