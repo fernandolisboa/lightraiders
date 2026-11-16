@@ -224,7 +224,7 @@ namespace LightRaiders
                 return;
 
             Door destination = door.Linked;
-            Teleport(destination.FindArrivalPosition(_controller.radius, _controller.height));
+            Teleport(destination.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject));
             _interactCooldownTicks = (ushort)Mathf.CeilToInt(InteractCooldownSeconds * (float)base.TimeManager.TickRate);
             _interactLatched = true;
 
