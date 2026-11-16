@@ -47,6 +47,10 @@ namespace LightRaiders
         /// <summary>
         /// Ready by this peer's view. On a client, <c>TimeManager.Tick</c> estimates
         /// the server tick, so it is comparable with the replicated end tick.
+        /// Known gap (cosmetic, self-correcting): the client's estimate is "now",
+        /// while the server applies the input about half a round trip later, so in
+        /// the last ticks of a cooldown the owner may predict "not ready" and be
+        /// moved by the reconcile instead (no fade), or the reverse.
         /// </summary>
         public bool IsReady => base.TimeManager != null && base.TimeManager.Tick >= _cooldownEndTick.Value;
 
@@ -109,10 +113,10 @@ namespace LightRaiders
         }
 
         /// <summary>Where a Raider using this gate lands, by the shared arrival-slot rule.</summary>
-        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight)
+        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight, NetworkObject mover)
         {
             Quaternion facing = Quaternion.Euler(0f, _destinationYaw.Value, 0f);
-            return ArrivalSlots.Find(_destination.Value, facing * Vector3.right, facing * Vector3.forward, capsuleRadius, capsuleHeight);
+            return ArrivalSlots.Find(_destination.Value, facing * Vector3.right, facing * Vector3.forward, capsuleRadius, capsuleHeight, mover);
         }
 
         /// <summary>
@@ -120,7 +124,7 @@ namespace LightRaiders
         /// that belongs to <paramref name="networkManager"/> (several managers coexist
         /// in-process in tests, each with its own copy of every gate).
         /// </summary>
-        public static Waygate FindNearest(Vector3 position, NetworkManager networkManager, float radius)
+        public static Waygate FindNearest(Vector3 position, NetworkManager networkManager, float radius, int layer = AnyLayer)
         {
             Waygate best = null;
             float bestSqr = radius * radius;
@@ -128,6 +132,8 @@ namespace LightRaiders
             {
                 Waygate gate = _active[i];
                 if (gate == null || gate.NetworkManager != networkManager)
+                    continue;
+                if (layer != AnyLayer && gate.LayerId != layer)
                     continue;
 
                 Vector3 offset = gate.transform.position - position;
@@ -145,7 +151,27 @@ namespace LightRaiders
             return best;
         }
 
-        public static Waygate FindUsable(Vector3 position, NetworkManager networkManager)
-            => FindNearest(position, networkManager, UseRadius);
+        /// <summary>
+        /// The gate a Raider in <paramref name="layer"/> can use from <paramref name="position"/>:
+        /// only gates in the same Layer count, so separated geometry is not the
+        /// only guard against using a gate from another Layer.
+        /// </summary>
+        public static Waygate FindUsable(Vector3 position, NetworkManager networkManager, int layer)
+            => FindNearest(position, networkManager, UseRadius, layer);
+
+        /// <summary>Wildcard for <see cref="FindNearest"/>'s layer filter.</summary>
+        public const int AnyLayer = int.MinValue;
+
+        /// <summary>This gate's Layer: server truth on the server, replicated on clients.</summary>
+        public int LayerId
+        {
+            get
+            {
+                _member ??= GetComponent<LayerMember>();
+                return _member != null ? _member.LayerId : LayerMember.Surface;
+            }
+        }
+
+        private LayerMember _member;
     }
 }

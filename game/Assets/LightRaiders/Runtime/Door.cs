@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FishNet.Object;
 using UnityEngine;
 
 namespace LightRaiders
@@ -57,8 +58,8 @@ namespace LightRaiders
         /// Where a Raider arriving through the linked door lands: the exit point,
         /// or the first free slot around it (<see cref="ArrivalSlots"/>).
         /// </summary>
-        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight)
-            => ArrivalSlots.Find(ExitPosition, transform.right, transform.forward, capsuleRadius, capsuleHeight);
+        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight, NetworkObject mover)
+            => ArrivalSlots.Find(ExitPosition, transform.right, transform.forward, capsuleRadius, capsuleHeight, mover);
 
         /// <summary>
         /// The nearest linked door within reach of <paramref name="position"/>, or

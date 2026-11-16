@@ -56,6 +56,7 @@ namespace LightRaiders
         /* Owner-only memo of the replicate tick at which it predicted a Waygate
          * use (0 = none), so replays repeat that use. */
         private uint _predictedGateTick;
+        private LayerMember _layerMember;
 
         /// <summary>
         /// Owner-side input for one tick. FishNet serializes public fields; the
@@ -234,11 +235,13 @@ namespace LightRaiders
             if (door != null)
             {
                 Door destination = door.Linked;
-                Transit(destination.FindArrivalPosition(_controller.radius, _controller.height), destination.LayerId, state);
+                Transit(destination.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject), destination.LayerId, state);
                 return;
             }
 
-            Waygate gate = Waygate.FindUsable(transform.position, base.NetworkManager);
+            _layerMember ??= GetComponent<LayerMember>();
+            int myLayer = _layerMember != null ? _layerMember.LayerId : LayerMember.Surface;
+            Waygate gate = Waygate.FindUsable(transform.position, base.NetworkManager, myLayer);
             if (gate == null)
                 return;
 
@@ -261,7 +264,7 @@ namespace LightRaiders
             }
 
             if (use)
-                Transit(gate.FindArrivalPosition(_controller.radius, _controller.height), gate.DestinationLayer, state);
+                Transit(gate.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject), gate.DestinationLayer, state);
         }
 
         private void Transit(Vector3 arrival, int destinationLayer, ReplicateState state)
