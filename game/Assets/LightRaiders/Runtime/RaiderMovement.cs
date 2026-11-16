@@ -223,7 +223,8 @@ namespace LightRaiders
         }
 
         /// <summary>
-        /// One interact press: a door if one is in reach, otherwise a Waygate.
+        /// One interact press: a door if one is in reach, otherwise a Waygate,
+        /// otherwise an Exfil site (server only).
         /// Doors are static scene data, so every runner resolves them the same way.
         /// A Waygate's readiness is server state: the server decides, the owner
         /// predicts from its replicated view, and spectators wait for correction.
@@ -240,7 +241,18 @@ namespace LightRaiders
 
             Waygate gate = Waygate.FindUsable(transform.position, base.NetworkManager);
             if (gate == null)
+            {
+                /* Exfil (#38): calling a site moves nobody, so nothing is predicted -
+                 * the server flips the site's state and every Surface observer sees
+                 * it through the site's SyncVars. */
+                if (IsServerInitialized)
+                {
+                    ExfilSite site = ExfilSite.FindNearest(transform.position, base.NetworkManager, ExfilSite.UseRadius);
+                    if (site != null && LayerMember.ServerLayerOf(site) == LayerMember.ServerLayerOf(this))
+                        site.ServerCall();
+                }
                 return;
+            }
 
             bool use;
             if (IsServerInitialized)

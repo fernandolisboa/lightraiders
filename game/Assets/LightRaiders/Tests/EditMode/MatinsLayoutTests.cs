@@ -140,6 +140,24 @@ namespace LightRaiders.Tests
         }
 
         [Test]
+        public void TwoExfilSites_OnTheSurface_InDifferentDistricts_ZonesClearOfSpawns()
+        {
+            Transform[] posts = _layout.ExfilPosts;
+            Assert.That(posts.Length, Is.EqualTo(2), "PRD #31: two Exfil sites.");
+            Assert.That(posts[0].GetComponentInParent<District>().Index, Is.Not.EqualTo(posts[1].GetComponentInParent<District>().Index));
+            foreach (Transform post in posts)
+            {
+                Assert.That(post.GetComponentInParent<LayerInfo>().LayerId, Is.EqualTo(LayerMember.Surface));
+                foreach (Transform spawn in _layout.SpawnPoints)
+                {
+                    Vector3 offset = spawn.position - post.position;
+                    offset.y = 0f;
+                    Assert.That(offset.magnitude, Is.GreaterThan(ExfilSite.ZoneRadius), "A spawn point sits inside an Exfil zone.");
+                }
+            }
+        }
+
+        [Test]
         public void SpawnPoints_AreOnTheSurface_TwoPerDistrict()
         {
             Assert.That(_layout.SpawnPoints.Length, Is.EqualTo(MatinsGenerator.DistrictCount * 2));

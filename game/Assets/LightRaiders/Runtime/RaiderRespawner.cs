@@ -116,6 +116,17 @@ namespace LightRaiders
                 _pending.Add(new PendingRespawn { Owner = owner, Tick = _networkManager.TimeManager.Tick + _respawnTicks });
         }
 
+        /// <summary>
+        /// Debug rejoin after extraction (#38): spawns the connection a fresh Raider
+        /// at the next Surface spawn point immediately - no loot bag, no delay.
+        /// </summary>
+        public void RejoinRaider(NetworkConnection owner)
+        {
+            if (_networkManager == null || !_networkManager.ServerManager.Started)
+                return;
+            RespawnRaider(owner);
+        }
+
         private void DropLootBag(Vector3 position, int layer)
         {
             if (_lootBagPrefab == null)
