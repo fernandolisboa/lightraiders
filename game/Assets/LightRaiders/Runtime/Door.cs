@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FishNet.Object;
 using UnityEngine;
 
 namespace LightRaiders
@@ -56,6 +57,7 @@ namespace LightRaiders
         /// <summary>Spacing between arrival slots: a capsule diameter plus slack.</summary>
         public const float ArrivalSlotSpacing = 1.2f;
         private const float ArrivalGroundClearance = 0.05f;
+        private static readonly Collider[] _overlaps = new Collider[16];
 
         /* Slot offsets in the door's frame (x = right, y = forward from the exit
          * point). Never back toward the door, so no slot comes closer to it than
@@ -74,8 +76,12 @@ namespace LightRaiders
         /// point is used anyway. The owner cannot see Raiders in the destination
         /// Layer before arriving, so it may predict the plain exit point where the
         /// server picks a slot; the next reconcile corrects that small offset.
+        /// Only colliders of the mover's own NetworkManager (or non-networked
+        /// geometry) block a slot: tests run several managers in one physics scene,
+        /// where the owner's copy of the mover - already teleported by prediction -
+        /// must not count as "someone standing there" on the server.
         /// </summary>
-        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight)
+        public Vector3 FindArrivalPosition(float capsuleRadius, float capsuleHeight, NetworkObject mover)
         {
             Vector3 exit = ExitPosition;
             Vector3 right = transform.right;
@@ -85,12 +91,30 @@ namespace LightRaiders
             for (int i = 0; i < ArrivalSlots.Length; i++)
             {
                 Vector3 candidate = exit + (right * ArrivalSlots[i].x + forward * ArrivalSlots[i].y) * ArrivalSlotSpacing;
-                if (!Physics.CheckCapsule(candidate + Vector3.up * bottom, candidate + Vector3.up * top, capsuleRadius,
-                        Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (!SlotBlocked(candidate + Vector3.up * bottom, candidate + Vector3.up * top, capsuleRadius, mover))
                     return candidate;
             }
 
             return exit;
+        }
+
+        private static bool SlotBlocked(Vector3 a, Vector3 b, float radius, NetworkObject mover)
+        {
+            int count = Physics.OverlapCapsuleNonAlloc(a, b, radius, _overlaps, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = _overlaps[i];
+                NetworkObject owner = hit != null ? hit.GetComponentInParent<NetworkObject>() : null;
+                if (owner == null)
+                    return true; // static geometry
+                if (owner == mover)
+                    continue;
+                if (mover != null && owner.NetworkManager != mover.NetworkManager)
+                    continue; // another in-process peer's copy (test harness)
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
