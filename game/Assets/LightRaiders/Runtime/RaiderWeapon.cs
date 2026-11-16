@@ -72,6 +72,8 @@ namespace LightRaiders
              * from the first tick: on the Raider side, so it damages hostile-side
              * targets only - never the shooter, never other Raiders. */
             nob.GetComponent<Projectile>().ServerInitCombat(Side.Raider, ProjectileDamage);
+            // The shot lives in the shooter's Layer (ADR-0008): only that Layer observes it.
+            LayerMember.StampBeforeSpawn(nob, LayerMember.ServerLayerOf(this));
             base.ServerManager.Spawn(nob);
         }
     }

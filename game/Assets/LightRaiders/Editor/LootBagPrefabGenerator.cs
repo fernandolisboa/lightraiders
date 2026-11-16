@@ -27,6 +27,8 @@ namespace LightRaiders.Editor
             // NetworkObject FIRST on the root - never rely on FishNet's add-on-demand fallback.
             root.AddComponent<NetworkObject>();
             root.AddComponent<LootBag>();
+            // Layer-scoped (ADR-0008): a bag is seen only from the Layer it dropped in.
+            LayerScopingGenerator.AddLayerScoping(root);
 
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
             visual.name = "Visual";

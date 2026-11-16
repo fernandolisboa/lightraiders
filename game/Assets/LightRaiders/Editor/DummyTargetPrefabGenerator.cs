@@ -30,6 +30,8 @@ namespace LightRaiders.Editor
             // NetworkObject FIRST on the root - never rely on FishNet's add-on-demand fallback.
             root.AddComponent<NetworkObject>();
 
+            // Layer-scoped (ADR-0008).
+            LayerScopingGenerator.AddLayerScoping(root);
             Health health = root.AddComponent<Health>();
             SetSide(health, Side.Hostile);
 

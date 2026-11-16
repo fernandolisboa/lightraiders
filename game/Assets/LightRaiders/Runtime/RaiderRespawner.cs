@@ -105,23 +105,25 @@ namespace LightRaiders
         /// disconnected owner still gets a bag but no respawn (no connection to give
         /// a fresh Raider to).
         /// </summary>
-        public void HandleRaiderDeath(NetworkConnection owner, Vector3 deathPosition)
+        public void HandleRaiderDeath(NetworkConnection owner, Vector3 deathPosition, int deathLayer = LayerMember.Surface)
         {
             if (_networkManager == null || !_networkManager.ServerManager.Started)
                 return;
 
-            DropLootBag(deathPosition);
+            DropLootBag(deathPosition, deathLayer);
 
             if (owner != null && owner.IsActive)
                 _pending.Add(new PendingRespawn { Owner = owner, Tick = _networkManager.TimeManager.Tick + _respawnTicks });
         }
 
-        private void DropLootBag(Vector3 position)
+        private void DropLootBag(Vector3 position, int layer)
         {
             if (_lootBagPrefab == null)
                 return;
 
             NetworkObject nob = _networkManager.GetPooledInstantiated(_lootBagPrefab, position, Quaternion.identity, true);
+            // The bag stays where the Raider fell - in that Raider's Layer (ADR-0008).
+            LayerMember.StampBeforeSpawn(nob, layer);
             _networkManager.ServerManager.Spawn(nob);
         }
 
@@ -150,6 +152,14 @@ namespace LightRaiders
             Transform spawn = NextSpawn();
             Vector3 position = spawn != null ? spawn.position : Vector3.zero;
             Quaternion rotation = spawn != null ? spawn.rotation : Quaternion.identity;
+
+            /* Respawns are on the Surface (spawn points are Surface points). Move the
+             * connection's view there BEFORE spawning so the owner observes its fresh
+             * Raider from the first evaluation; the prefab's LayerMember defaults to
+             * the Surface too. */
+            LayerService layers = _networkManager.GetComponent<LayerService>();
+            if (layers != null)
+                layers.ServerSetConnectionLayer(owner, LayerMember.Surface);
 
             NetworkObject nob = _networkManager.GetPooledInstantiated(_raiderPrefab, position, rotation, true);
             /* Spawn OWNED by the original connection: FishNet gives that client input

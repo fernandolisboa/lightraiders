@@ -222,9 +222,17 @@ namespace LightRaiders.Editor
             respawner.SetLootBagPrefab(lootBagPrefab);
             respawner.SetSpawns(spawnPoints);
 
+            /* Layer scoping (ADR-0008): the server-side registry of which Layer each
+             * connection views. The arena is a single Layer (the Surface), so this
+             * only matters once maps add interiors - but every Layer-bound prefab's
+             * observer condition looks it up beside the NetworkManager. */
+            LayerService layerService = session.AddComponent<LayerService>();
+            layerService.SetNetworkManager(networkManager);
+
             EditorUtility.SetDirty(networkManager);
             EditorUtility.SetDirty(spawner);
             EditorUtility.SetDirty(respawner);
+            EditorUtility.SetDirty(layerService);
 
             return networkManager;
         }
