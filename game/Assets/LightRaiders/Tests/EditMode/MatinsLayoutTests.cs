@@ -158,6 +158,36 @@ namespace LightRaiders.Tests
         }
 
         [Test]
+        public void TwoToThreeHatches_ClearOfDoorsGatesAndExfilZones()
+        {
+            Transform[] hatches = _layout.HatchPosts;
+            Assert.That(hatches.Length, Is.InRange(2, 3), "PRD #31: two to three Hatches.");
+            foreach (Transform hatch in hatches)
+            {
+                foreach (Door door in Doors)
+                {
+                    Vector3 offset = door.transform.position - hatch.position;
+                    offset.y = 0f;
+                    Assert.That(offset.magnitude, Is.GreaterThan(Door.UseRadius + Hatch.ChannelRadius), hatch.name + " is in reach of " + door.name + ".");
+                }
+
+                foreach (Transform exfil in _layout.ExfilPosts)
+                {
+                    Vector3 offset = exfil.position - hatch.position;
+                    offset.y = 0f;
+                    Assert.That(offset.magnitude, Is.GreaterThan(ExfilSite.ZoneRadius), hatch.name + " sits inside an Exfil zone.");
+                }
+
+                foreach (Transform gate in _layout.WaygatePosts)
+                {
+                    Vector3 offset = gate.position - hatch.position;
+                    offset.y = 0f;
+                    Assert.That(offset.magnitude, Is.GreaterThan(Waygate.UseRadius + Hatch.ChannelRadius), hatch.name + " is in reach of a Waygate.");
+                }
+            }
+        }
+
+        [Test]
         public void SpawnPoints_AreOnTheSurface_TwoPerDistrict()
         {
             Assert.That(_layout.SpawnPoints.Length, Is.EqualTo(MatinsGenerator.DistrictCount * 2));

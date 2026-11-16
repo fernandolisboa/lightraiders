@@ -15,7 +15,7 @@ namespace LightRaiders.Editor
     /// Per ADR-0008 every Layer lives in the one physics scene, its geometry placed
     /// far from every other Layer's so nothing can be seen or shot across.
     /// Idempotent like the arena: reruns rebuild the generated roots in place.
-    /// Also places the Waygate pair (#37) and two Exfil sites (#38); Hatches come with #39.
+    /// Also places the Waygate pair (#37), two Exfil sites (#38) and three Hatches (#39).
     /// </summary>
     public static class MatinsGenerator
     {
@@ -73,6 +73,10 @@ namespace LightRaiders.Editor
         private static readonly int[] ExfilDistricts = { 0, DistrictCount - 1 };
         private static readonly Vector2 ExfilSlot = new Vector2(0f, 15f);
 
+        /* Hatches (#39): one per district (PRD: 2-3 per map), placed on the side
+         * of the district away from its Exfil site where it has one. */
+        private static readonly Vector2[] HatchSlots = { new Vector2(0f, -15f), new Vector2(0f, 15f), new Vector2(0f, -15f) };
+
         private const float BuildingSize = 6f;
         private const float BuildingHeight = 4f;
         private const float EntranceSize = 3f;
@@ -100,6 +104,8 @@ namespace LightRaiders.Editor
             public Transform[] WaygatePosts;
             /// <summary>The two Exfil sites' posts (#38).</summary>
             public Transform[] ExfilPosts;
+            /// <summary>The Hatches' posts (#39), one per district.</summary>
+            public Transform[] HatchPosts;
         }
 
         /// <summary>
@@ -136,6 +142,7 @@ namespace LightRaiders.Editor
             ArenaSceneGenerator.BuildCameraRig(networkManager);
             BuildWaygateSpawner(networkManager, layout.WaygatePosts);
             BuildPostSpawner(networkManager, SessionAssetPaths.ExfilSitePrefab, layout.ExfilPosts);
+            BuildPostSpawner(networkManager, SessionAssetPaths.HatchPrefab, layout.HatchPosts);
             HudGenerator.BuildHud(networkManager);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -174,6 +181,7 @@ namespace LightRaiders.Editor
             List<Transform> spawnPoints = new List<Transform>();
             Transform[] waygatePosts = new Transform[2];
             List<Transform> exfilPosts = new List<Transform>();
+            List<Transform> hatchPosts = new List<Transform>();
             int interiorIndex = 0;
             for (int d = 0; d < DistrictCount; d++)
             {
@@ -208,11 +216,12 @@ namespace LightRaiders.Editor
 
                 if (System.Array.IndexOf(ExfilDistricts, d) >= 0)
                     exfilPosts.Add(CreatePost(districtGo.transform, "ExfilPost", ExfilSlot, Vector3.back));
+                hatchPosts.Add(CreatePost(districtGo.transform, "HatchPost", HatchSlots[d], Vector3.forward));
 
                 CreateBox(districtGo.transform, "Cover", new Vector3(0f, 0.75f, 6f), new Vector3(4f, 1.5f, 1f), materials.Wall);
             }
 
-            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray(), WaygatePosts = waygatePosts, ExfilPosts = exfilPosts.ToArray() };
+            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray(), WaygatePosts = waygatePosts, ExfilPosts = exfilPosts.ToArray(), HatchPosts = hatchPosts.ToArray() };
         }
 
         private static Transform CreatePost(Transform parent, string name, Vector2 slot, Vector3 facing)

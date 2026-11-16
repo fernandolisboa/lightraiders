@@ -224,7 +224,7 @@ namespace LightRaiders
 
         /// <summary>
         /// One interact press: a door if one is in reach, otherwise a Waygate,
-        /// otherwise an Exfil site (server only).
+        /// otherwise a Hatch or an Exfil site (server only).
         /// Doors are static scene data, so every runner resolves them the same way.
         /// A Waygate's readiness is server state: the server decides, the owner
         /// predicts from its replicated view, and spectators wait for correction.
@@ -242,11 +242,22 @@ namespace LightRaiders
             Waygate gate = Waygate.FindUsable(transform.position, base.NetworkManager);
             if (gate == null)
             {
-                /* Exfil (#38): calling a site moves nobody, so nothing is predicted -
-                 * the server flips the site's state and every Surface observer sees
-                 * it through the site's SyncVars. */
+                /* Hatch (#39) then Exfil (#38): neither moves anybody at the press,
+                 * so nothing is predicted - the server starts the channel or calls
+                 * the site, and observers see it through the fixture's SyncVars. */
                 if (IsServerInitialized)
                 {
+                    Hatch hatch = Hatch.FindNearest(transform.position, base.NetworkManager, Hatch.UseRadius);
+                    if (hatch != null)
+                    {
+                        /* A started channel consumes the press (the latch): holding the
+                         * key down must not silently restart a channel that damage just
+                         * cancelled. Server-only, so the owner learns it via reconcile. */
+                        if (hatch.ServerTryStartChannel(base.NetworkObject))
+                            _interactLatched = true;
+                        return;
+                    }
+
                     ExfilSite site = ExfilSite.FindNearest(transform.position, base.NetworkManager, ExfilSite.UseRadius);
                     if (site != null && LayerMember.ServerLayerOf(site) == LayerMember.ServerLayerOf(this))
                         site.ServerCall();
