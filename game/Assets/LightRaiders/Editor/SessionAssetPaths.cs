@@ -20,6 +20,7 @@ namespace LightRaiders.Editor
         public const string LootBagPrefab = PrefabsFolder + "/LootBag.prefab";
         public const string LayerConditionAsset = ObserversFolder + "/LayerCondition.asset";
         public const string BootstrapArenaScene = ScenesFolder + "/BootstrapArena.unity";
+        public const string MatinsScene = ScenesFolder + "/Matins.unity";
         public const string RaiderMaterial = MaterialsFolder + "/Raider.mat";
         public const string AimIndicatorMaterial = MaterialsFolder + "/AimIndicator.mat";
         public const string ProjectileMaterial = MaterialsFolder + "/Projectile.mat";
@@ -28,6 +29,10 @@ namespace LightRaiders.Editor
         public const string LootBagMaterial = MaterialsFolder + "/LootBag.mat";
         public const string ArenaFloorMaterial = MaterialsFolder + "/ArenaFloor.mat";
         public const string ArenaObstacleMaterial = MaterialsFolder + "/ArenaObstacle.mat";
+        public const string MatinsBuildingMaterial = MaterialsFolder + "/MatinsBuilding.mat";
+        public const string MatinsInteriorMaterial = MaterialsFolder + "/MatinsInterior.mat";
+        public const string MatinsUndercroftMaterial = MaterialsFolder + "/MatinsUndercroft.mat";
+        public const string MatinsDoorMaterial = MaterialsFolder + "/MatinsDoor.mat";
         public const string HealthBarBackgroundMaterial = MaterialsFolder + "/HealthBarBackground.mat";
         public const string HealthBarFillMaterial = MaterialsFolder + "/HealthBarFill.mat";
 

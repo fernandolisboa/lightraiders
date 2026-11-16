@@ -6,7 +6,7 @@ Batch-mode runs lock `game/Library`. If the editor (or any MPPM virtual player) 
 open, CLI runs fail or hang. Close everything Unity before running the commands
 below.
 
-## Generate session assets (Raider prefab + bootstrap arena scene)
+## Generate session assets (prefabs, bootstrap arena and Matins scenes)
 
 On a fresh checkout, generation is a prerequisite for the test run: the PlayMode
 tests fail with an actionable message until the Raider prefab exists.
@@ -34,6 +34,15 @@ New-Item -ItemType Directory -Force "C:\Users\ferna\source\repos\lightraiders\ar
 ```
 
 Note: NO `-quit` on the test command — it aborts the test run.
+
+## Run EditMode tests
+
+EditMode tests (`Tests/EditMode`, e.g. the Matins map smoke test) build
+generated content in memory and need no network session:
+
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe" -runTests -batchmode -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -testPlatform EditMode -testResults "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode-results.xml" -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode.log"
+```
 
 The hardcoded editor path version (`6000.3.19f1`) must match
 `game/ProjectSettings/ProjectVersion.txt`; update both commands above when the

@@ -60,9 +60,7 @@ namespace LightRaiders.Editor
              * next regeneration. */
             foreach (GameObject rootGo in scene.GetRootGameObjects())
             {
-                if (rootGo.name == ArenaRootName || rootGo.name == NetworkSessionRootName
-                    || rootGo.name == RaiderCameraRigName || rootGo.name == DefaultCameraName
-                    || rootGo.name == HudGenerator.ScreenHudRootName || rootGo.name == HudGenerator.WorldBarsRootName)
+                if (rootGo.name == ArenaRootName || IsGeneratedSessionRoot(rootGo.name))
                     Object.DestroyImmediate(rootGo);
             }
 
@@ -78,7 +76,19 @@ namespace LightRaiders.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
+
+            /* Phase 2 map (#36): built from the same prefabs and session wiring, so
+             * one GenerateAll regenerates every committed scene. */
+            MatinsGenerator.Generate();
         }
+
+        /// <summary>
+        /// Session roots every generated scene shares (network session, camera rig,
+        /// HUD, the template's default camera); swept before a rebuild.
+        /// </summary>
+        internal static bool IsGeneratedSessionRoot(string name)
+            => name == NetworkSessionRootName || name == RaiderCameraRigName || name == DefaultCameraName
+                || name == HudGenerator.ScreenHudRootName || name == HudGenerator.WorldBarsRootName;
 
         private static Transform[] BuildArena(out Transform[] targetPosts, out Transform[] emitterPosts)
         {
@@ -178,7 +188,7 @@ namespace LightRaiders.Editor
             return spawnPoints;
         }
 
-        private static NetworkManager BuildNetworkSession(Transform[] spawnPoints)
+        internal static NetworkManager BuildNetworkSession(Transform[] spawnPoints)
         {
             GameObject session = new GameObject(NetworkSessionRootName);
 
