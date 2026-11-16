@@ -33,7 +33,8 @@ namespace LightRaiders
 
         public void Configure(int layerId, string displayName, LayerSize size)
         {
-            bool registered = isActiveAndEnabled;
+            /* Play mode only: edit-time generation must not fill the static registry. */
+            bool registered = Application.isPlaying && isActiveAndEnabled;
             if (registered)
                 OnDisable();
             _layerId = layerId;

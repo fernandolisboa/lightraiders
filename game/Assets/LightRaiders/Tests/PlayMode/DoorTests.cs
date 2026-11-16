@@ -13,7 +13,9 @@ namespace LightRaiders.Tests
     /// moves a Raider into the linked door's Layer. Each test builds a Surface
     /// floor with a door, and an interior floor far away (separated geometry,
     /// ADR-0008) with the linked door. Spawn A stands on the Surface door; spawn
-    /// B stands 4m away, outside the use radius.
+    /// B stands 4m away, outside the use radius. The interior door's exit point is
+    /// deliberately INSIDE its own use radius, so only the release latch keeps a
+    /// held interact from bouncing a Raider straight back.
     /// </summary>
     [TestFixture]
     public class DoorTests
@@ -21,6 +23,8 @@ namespace LightRaiders.Tests
         private const int InteriorLayer = 3;
         private static readonly Vector3 SurfaceDoorPos = new Vector3(10f, 0f, 10f);
         private static readonly Vector3 InteriorOrigin = new Vector3(300f, 0f, 300f);
+        /// <summary>Interior exit distance, inside Door.UseRadius on purpose.</summary>
+        private const float InteriorExitDistance = 1f;
 
         private NetworkSessionHarness _harness;
         private List<GameObject> _sceneObjects;
@@ -39,6 +43,10 @@ namespace LightRaiders.Tests
 
             _surfaceDoor = MakeDoor("SurfaceDoor", SurfaceDoorPos, LayerMember.Surface);
             _interiorDoor = MakeDoor("InteriorDoor", InteriorOrigin, InteriorLayer);
+            GameObject interiorExit = new GameObject("InteriorExit");
+            interiorExit.transform.SetParent(_interiorDoor.transform, false);
+            interiorExit.transform.localPosition = new Vector3(0f, 0f, InteriorExitDistance);
+            _interiorDoor.Configure(InteriorLayer, null, interiorExit.transform);
             Door.Link(_surfaceDoor, _interiorDoor);
 
             GameObject spawnA = new GameObject("TestSpawnA");
@@ -127,13 +135,20 @@ namespace LightRaiders.Tests
             Assert.That(raiderAOnServer.GetComponent<LayerMember>().ServerLayer, Is.EqualTo(InteriorLayer), "A's Layer did not follow the door.");
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarDistance(raiderA.transform.position, interiorExit) < 0.5f,
-                "A's own (predicted) view never arrived at the interior exit.",
+                "A's own view never arrived at the interior exit.",
                 15f);
 
-            // Holding interact must not bounce A back: the exit is outside the use radius and the cooldown guards it.
-            yield return _harness.WaitForServerTicks(server, 30);
-            Assert.That(NetworkSessionHarness.PlanarDistance(raiderAOnServer.transform.position, interiorExit), Is.LessThan(0.5f),
+            /* Holding interact must not bounce A back. The exit is within the
+             * interior door's reach, so without the release latch A would go back
+             * out as soon as the cooldown ran down; hold well past the cooldown. */
+            Assert.That(NetworkSessionHarness.PlanarDistance(_interiorDoor.transform.position, interiorExit), Is.LessThan(Door.UseRadius),
+                "Test setup: the interior exit must be inside the door's reach for this check to mean anything.");
+            int cooldownTicks = Mathf.CeilToInt(RaiderMovement.InteractCooldownSeconds * server.TimeManager.TickRate);
+            yield return _harness.WaitForServerTicks(server, (uint)(cooldownTicks * 3));
+            Assert.That(raiderAOnServer.GetComponent<LayerMember>().ServerLayer, Is.EqualTo(InteriorLayer),
                 "Holding interact bounced A back through the door.");
+            Assert.That(NetworkSessionHarness.PlanarDistance(raiderAOnServer.transform.position, interiorExit), Is.LessThan(0.5f),
+                "A drifted off the interior exit while holding interact.");
             scriptedA.Intent = new RaiderIntent();
 
             // B, still on the Surface, stops observing A.
@@ -157,6 +172,11 @@ namespace LightRaiders.Tests
                 "B never followed A through the door.",
                 15f);
             scriptedB.Intent = new RaiderIntent();
+
+            /* A still stands on the exit point: B must land in a free slot beside
+             * it, not inside A's capsule. */
+            Assert.That(NetworkSessionHarness.PlanarDistance(raiderBOnServer.transform.position, raiderAOnServer.transform.position),
+                Is.GreaterThan(0.9f), "B arrived overlapping A instead of in a free arrival slot.");
 
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.FindOnView(clientB.ClientManager.Objects.Spawned, raiderA.ObjectId) != null
