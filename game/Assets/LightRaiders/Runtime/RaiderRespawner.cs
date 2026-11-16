@@ -120,11 +120,13 @@ namespace LightRaiders
         /// Debug rejoin after extraction (#38): spawns the connection a fresh Raider
         /// at the next Surface spawn point immediately - no loot bag, no delay.
         /// </summary>
-        public void RejoinRaider(NetworkConnection owner)
+        /// <returns>True when a Raider was spawned for the connection.</returns>
+        public bool RejoinRaider(NetworkConnection owner)
         {
-            if (_networkManager == null || !_networkManager.ServerManager.Started)
-                return;
+            if (_networkManager == null || !_networkManager.ServerManager.Started || owner == null || !owner.IsActive)
+                return false;
             RespawnRaider(owner);
+            return true;
         }
 
         private void DropLootBag(Vector3 position, int layer)

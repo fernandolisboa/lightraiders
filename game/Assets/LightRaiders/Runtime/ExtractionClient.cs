@@ -19,6 +19,9 @@ namespace LightRaiders
 
         private bool _registered;
         private bool _rejoinRequested;
+        private float _rejoinRequestedAt;
+        /// <summary>A rejoin request with no Raider after this long may be sent again.</summary>
+        public const float RejoinRetrySeconds = 3f;
         private Texture2D _backdrop;
 
         public bool IsExtracted { get; private set; }
@@ -58,9 +61,12 @@ namespace LightRaiders
         /// <summary>Debug rejoin: asks the server for a fresh Raider at a spawn point.</summary>
         public void RequestRejoin()
         {
-            if (!IsExtracted || _rejoinRequested || _networkManager == null || !_networkManager.ClientManager.Started)
+            if (!IsExtracted || _networkManager == null || !_networkManager.ClientManager.Started)
+                return;
+            if (_rejoinRequested && Time.unscaledTime - _rejoinRequestedAt < RejoinRetrySeconds)
                 return;
             _rejoinRequested = true;
+            _rejoinRequestedAt = Time.unscaledTime;
             _networkManager.ClientManager.Broadcast(new RejoinRequestBroadcast());
         }
 

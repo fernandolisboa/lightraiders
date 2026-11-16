@@ -118,12 +118,19 @@ namespace LightRaiders
         private void OnRejoinRequest(NetworkConnection connection, RejoinRequestBroadcast message, Channel channel)
         {
             // Only an extracted connection may rejoin; anything else is ignored.
-            if (!_extracted.Remove(connection))
+            if (!_extracted.Contains(connection))
                 return;
 
             RaiderRespawner respawner = _networkManager.GetComponent<RaiderRespawner>();
-            if (respawner != null)
-                respawner.RejoinRaider(connection);
+            if (respawner == null)
+            {
+                Debug.LogError("Rejoin requested but no RaiderRespawner sits beside the NetworkManager.", this);
+                return;
+            }
+
+            // Forget the connection only once it actually has a Raider again.
+            if (respawner.RejoinRaider(connection))
+                _extracted.Remove(connection);
         }
 
         /// <summary>The service beside a NetworkManager, or null.</summary>
