@@ -6,8 +6,10 @@ namespace LightRaiders
 {
     /// <summary>
     /// Graybox raid-state HUD (Phase 2): the local Raider's current Layer, plus
-    /// a fade on every Layer change. Client-local and read-only - it reads the
-    /// replicated <see cref="LayerMember"/> of the owned Raider. IMGUI on purpose:
+    /// a fade on every door transit. Client-local and read-only - it reads the
+    /// replicated <see cref="LayerMember"/> of the owned Raider, and fades on the
+    /// owner's predicted transit (<see cref="RaiderMovement.LocalDoorTransit"/>)
+    /// so the fade hides the jump rather than trailing the Layer SyncVar. IMGUI on purpose:
     /// Phase 6 replaces all of it. Later Phase 2 slices add Waygate cooldown,
     /// Exfil countdown and Hatch channel lines here.
     /// </summary>
@@ -19,6 +21,7 @@ namespace LightRaiders
         private ScreenFade _fade;
 
         private NetworkObject _owned;
+        private RaiderMovement _ownedMovement;
         private int _lastLayer = int.MinValue;
 
         public void SetNetworkManager(NetworkManager networkManager) => _networkManager = networkManager;
@@ -31,21 +34,35 @@ namespace LightRaiders
         private void Update()
         {
             if (_owned == null || !_owned.IsSpawned)
-            {
-                _owned = FindOwnedRaider();
-                _lastLayer = int.MinValue;
-            }
+                Acquire(FindOwnedRaider());
 
             if (_owned == null)
                 return;
 
             LayerMember member = _owned.GetComponent<LayerMember>();
-            int layer = member != null ? member.LayerId : LayerMember.Surface;
-            // Fade on a CHANGE only - not on first acquisition (spawn/respawn).
-            if (_lastLayer != int.MinValue && layer != _lastLayer && _fade != null)
-                _fade.Trigger();
-            _lastLayer = layer;
+            _lastLayer = member != null ? member.LayerId : LayerMember.Surface;
         }
+
+        private void Acquire(NetworkObject owned)
+        {
+            if (_ownedMovement != null)
+                _ownedMovement.LocalDoorTransit -= OnLocalDoorTransit;
+
+            _owned = owned;
+            _ownedMovement = owned != null ? owned.GetComponent<RaiderMovement>() : null;
+            _lastLayer = int.MinValue;
+
+            if (_ownedMovement != null)
+                _ownedMovement.LocalDoorTransit += OnLocalDoorTransit;
+        }
+
+        private void OnLocalDoorTransit()
+        {
+            if (_fade != null)
+                _fade.Trigger();
+        }
+
+        private void OnDisable() => Acquire(null);
 
         private NetworkObject FindOwnedRaider()
         {
@@ -67,9 +84,11 @@ namespace LightRaiders
                 return;
 
             float y = 40f;
+            Color previous = GUI.color;
             GUI.color = Color.white;
             GUI.Label(new Rect(10f, y, 400f, 22f), "Layer: " + LayerInfo.NameOf(_lastLayer == int.MinValue ? LayerMember.Surface : _lastLayer));
             y += 22f;
+            GUI.color = previous;
         }
     }
 }

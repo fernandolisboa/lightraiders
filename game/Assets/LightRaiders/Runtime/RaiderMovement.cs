@@ -34,11 +34,23 @@ namespace LightRaiders
 
         private float _verticalVelocity;
 
-        /* Interact cooldown (0.5s): holding the use control after a door transit
-         * must not bounce the Raider straight back. Door exit points also sit
-         * outside the use radius; this is the second guard. 0 = ready. */
+        /* Door anti-bounce, two guards, both reconciled so replays agree:
+         * - a latch: after a transit the use control must be RELEASED before any
+         *   door works again, so holding it can never bounce the Raider back;
+         * - a cooldown (0.5s) as a countdown in ticks, not an absolute tick: the
+         *   owner, server and spectators each run their own tick clock, so only a
+         *   relative count means the same thing on every peer. 0 = ready. */
         public const float InteractCooldownSeconds = 0.5f;
-        private uint _nextInteractTick;
+        private ushort _interactCooldownTicks;
+        private bool _interactLatched;
+
+        /// <summary>
+        /// Raised on the owning client when its Raider goes through a door, at the
+        /// moment of the (predicted) teleport and never on a replay. Presentation
+        /// hooks (the transition fade) listen here so they cover the jump instead of
+        /// trailing it by a round trip.
+        /// </summary>
+        public event System.Action LocalDoorTransit;
 
         /// <summary>
         /// Owner-side input for one tick. FishNet serializes public fields; the
@@ -79,18 +91,20 @@ namespace LightRaiders
             public Vector3 Position;
             public Quaternion Rotation;
             public float VerticalVelocity;
-            /* Predicted interact cooldown: a door transit replays on the owner, so
-             * the tick it unlocks again must be reconciled like position is. */
-            public uint NextInteractTick;
+            /* Predicted door guards: a transit replays on the owner, so the
+             * cooldown and latch must be reconciled like position is. */
+            public ushort InteractCooldownTicks;
+            public bool InteractLatched;
 
             private uint _tick;
 
-            public ReconcileData(Vector3 position, Quaternion rotation, float verticalVelocity, uint nextInteractTick)
+            public ReconcileData(Vector3 position, Quaternion rotation, float verticalVelocity, ushort interactCooldownTicks, bool interactLatched)
             {
                 Position = position;
                 Rotation = rotation;
                 VerticalVelocity = verticalVelocity;
-                NextInteractTick = nextInteractTick;
+                InteractCooldownTicks = interactCooldownTicks;
+                InteractLatched = interactLatched;
                 _tick = 0;
             }
 
@@ -151,7 +165,7 @@ namespace LightRaiders
              * its own copy only as a fallback for a dropped server reconcile. We
              * have no platform/trigger dependency, so PostTick timing is purely to
              * capture post-movement state. */
-            ReconcileData rd = new ReconcileData(transform.position, transform.rotation, _verticalVelocity, _nextInteractTick);
+            ReconcileData rd = new ReconcileData(transform.position, transform.rotation, _verticalVelocity, _interactCooldownTicks, _interactLatched);
             PerformReconcile(rd);
         }
 
@@ -179,8 +193,15 @@ namespace LightRaiders
             /* Doors (#35): predicted like movement - the owner teleports locally the
              * same tick the server does, and reconcile corrects any disagreement.
              * Only the server changes the Layer (observer scoping is authoritative). */
-            if (hasInput && rd.Interact)
-                TryUseDoor(rd.GetTick());
+            if (_interactCooldownTicks > 0)
+                _interactCooldownTicks--;
+            if (hasInput)
+            {
+                if (!rd.Interact)
+                    _interactLatched = false;
+                else if (!_interactLatched && _interactCooldownTicks == 0)
+                    TryUseDoor(state);
+            }
 
             /* Fire is SERVER-ONLY (ADR-0005): the server owns the projectile, the
              * cooldown, and the muzzle origin from the authoritative transform.
@@ -196,18 +217,19 @@ namespace LightRaiders
             }
         }
 
-        private void TryUseDoor(uint tick)
+        private void TryUseDoor(ReplicateState state)
         {
-            if (tick < _nextInteractTick)
-                return;
-
             Door door = Door.FindUsable(transform.position);
             if (door == null)
                 return;
 
             Door destination = door.Linked;
-            Teleport(destination.ExitPosition);
-            _nextInteractTick = tick + (uint)Mathf.CeilToInt(InteractCooldownSeconds * (float)base.TimeManager.TickRate);
+            Teleport(destination.FindArrivalPosition(_controller.radius, _controller.height));
+            _interactCooldownTicks = (ushort)Mathf.CeilToInt(InteractCooldownSeconds * (float)base.TimeManager.TickRate);
+            _interactLatched = true;
+
+            if (IsOwner && !state.IsReplayed())
+                LocalDoorTransit?.Invoke();
 
             if (IsServerInitialized)
             {
@@ -234,7 +256,8 @@ namespace LightRaiders
         private void PerformReconcile(ReconcileData rd, Channel channel = Channel.Unreliable)
         {
             _verticalVelocity = rd.VerticalVelocity;
-            _nextInteractTick = rd.NextInteractTick;
+            _interactCooldownTicks = rd.InteractCooldownTicks;
+            _interactLatched = rd.InteractLatched;
 
             /* The CharacterController must be disabled before its Transform is
              * written, or the physics body lags a tick behind the visual position

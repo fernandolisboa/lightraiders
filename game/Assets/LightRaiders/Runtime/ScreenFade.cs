@@ -42,6 +42,8 @@ namespace LightRaiders
                 _black.Apply();
             }
 
+            /* Lower depth draws on top: the fade must cover the HUD lines too. */
+            GUI.depth = -100;
             Color previous = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, alpha);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _black);
