@@ -15,9 +15,10 @@ namespace LightRaiders
 
         private readonly SyncVar<int> _layer = new();
 
-        /* Plain field, not the SyncVar: the observer condition runs during
-         * ServerManager.Spawn - before OnStartServer - so a Layer stamped by the
-         * spawner via ServerSetLayer must be readable before the SyncVar is live. */
+        /* Plain field, not the SyncVar: the server's truth must exist before the
+         * object is spawned (spawners stamp it via StampBeforeSpawn) and must not
+         * depend on SyncVar lifecycle. OnStartServer copies it into the SyncVar;
+         * the spawn-time observer rebuild then reads this field. */
         private int _serverLayer = Surface;
 
         /// <summary>Server-side truth. Only meaningful on the server.</summary>

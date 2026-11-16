@@ -33,9 +33,14 @@ namespace LightRaiders
 
         public void Configure(int layerId, string displayName, LayerSize size)
         {
+            bool registered = isActiveAndEnabled;
+            if (registered)
+                OnDisable();
             _layerId = layerId;
             _displayName = displayName;
             _size = size;
+            if (registered)
+                OnEnable();
         }
 
         public static bool TryGet(int layerId, out LayerInfo info) => _byId.TryGetValue(layerId, out info) && info != null;

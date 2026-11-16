@@ -138,8 +138,8 @@ namespace LightRaiders.Tests
                 () => NetworkSessionHarness.CountRaiders(clientB.ClientManager.Objects.Spawned) == 2,
                 "Client B never saw both Raiders.");
             yield return _harness.WaitUntil(
-                () => NetworkSessionHarness.FindOwnedRaider(clientA) != null,
-                "Client A never saw its owned Raider.");
+                () => NetworkSessionHarness.FindOwnedRaider(clientA) != null && NetworkSessionHarness.FindOwnedRaider(clientB) != null,
+                "A client never saw its owned Raider.");
 
             NetworkObject raiderA = NetworkSessionHarness.FindOwnedRaider(clientA);
             NetworkObject raiderAOnServer = NetworkSessionHarness.FindOnView(server.ServerManager.Objects.Spawned, raiderA.ObjectId);
@@ -147,6 +147,10 @@ namespace LightRaiders.Tests
 
             ScriptedRaiderIntentProvider scripted = new ScriptedRaiderIntentProvider();
             raiderA.GetComponent<RaiderMovement>().SetIntentProvider(scripted);
+            /* B gets a neutral provider: in an interactive editor run with the mouse
+             * held, B would poll the real Attack action and fire on the Surface,
+             * satisfying or breaking the projectile assertions below. */
+            NetworkSessionHarness.FindOwnedRaider(clientB).GetComponent<RaiderMovement>().SetIntentProvider(new ScriptedRaiderIntentProvider());
             yield return _harness.SettleServerRaider(raiderAOnServer);
 
             server.GetComponent<LayerService>().ServerMoveRaider(raiderAOnServer, InteriorLayer);
