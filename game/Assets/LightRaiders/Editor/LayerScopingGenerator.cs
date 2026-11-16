@@ -45,7 +45,8 @@ namespace LightRaiders.Editor
             SerializedProperty overrideType = so.FindProperty("_overrideType");
             if (overrideType == null)
                 throw new InvalidOperationException("FishNet renamed NetworkObserver field '_overrideType' — update LayerScopingGenerator.");
-            overrideType.enumValueIndex = (int)NetworkObserver.ConditionOverrideType.IgnoreManager;
+            /* intValue, not enumValueIndex: the enum's values (1..3) are not its name positions. */
+            overrideType.intValue = (int)NetworkObserver.ConditionOverrideType.IgnoreManager;
 
             conditions.arraySize = 1;
             conditions.GetArrayElementAtIndex(0).objectReferenceValue = EnsureConditionAsset();
