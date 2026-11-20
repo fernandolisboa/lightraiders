@@ -11,8 +11,11 @@ GameObject:
   - component: {fileID: 3137341637283455056}
   - component: {fileID: 5419409513940672673}
   - component: {fileID: 2387944315304528615}
+  - component: {fileID: 7838516643559895663}
+  - component: {fileID: 7333216282284147477}
   - component: {fileID: 1503228799003598345}
   - component: {fileID: 8229274239266614080}
+  - component: {fileID: 2469759588683750383}
   - component: {fileID: 6903384982877733029}
   - component: {fileID: 606983938391514158}
   - component: {fileID: 2399595586216106844}
@@ -37,8 +40,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 223124970186941580}
-  - {fileID: 1440153713083116566}
+  - {fileID: 3166555368002582694}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5419409513940672673
@@ -110,6 +112,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cebc83b614b5674fbce7bcfaf5d0387, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.Raider
+  _graphics: {fileID: 3166555368002582694}
+--- !u!114 &7838516643559895663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 144569332420392933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41166e50cd66487194f828509101e2e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.LayerMember
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5419409513940672673}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &7333216282284147477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 144569332420392933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c71fd7f855ec523429999fc4e14a1928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Observing.NetworkObserver
+  _overrideType: 3
+  _updateHostVisibility: 1
+  _observerConditions:
+  - {fileID: 11400000, guid: c3f5fda94242f5245a84c830aa67769e, type: 2}
 --- !u!114 &1503228799003598345
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,6 +172,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 347ddf9209ea29a408833b55d376b2c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.RaiderDeathHandler
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5419409513940672673}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &2469759588683750383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 144569332420392933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63342a2bcc6d408b9fc339edd0554ec5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.HatchKeys
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 5419409513940672673}
   _networkObjectCache: {fileID: 0}
@@ -242,7 +291,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3137341637283455056}
+  m_Father: {fileID: 3166555368002582694}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8764772000319481306
 MeshFilter:
@@ -301,6 +350,74 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8615749193281904434
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3166555368002582694}
+  - component: {fileID: 169744592887612984}
+  m_Layer: 0
+  m_Name: Graphics
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3166555368002582694
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8615749193281904434}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 223124970186941580}
+  - {fileID: 1440153713083116566}
+  m_Father: {fileID: 3137341637283455056}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &169744592887612984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8615749193281904434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 453481867b26f7c43b5bf38802a5f50e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Transforming.Beta.NetworkTickSmoother
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5419409513940672673}
+  _networkObjectCache: {fileID: 0}
+  _initializationSettings:
+    TargetTransform: {fileID: 3137341637283455056}
+    DetachOnStart: 0
+    AttachOnStop: 0
+  _controllerMovementSettings:
+    EnableTeleport: 1
+    TeleportThreshold: 2
+    AdaptiveInterpolationValue: 0
+    InterpolationValue: 2
+    SmoothedProperties: 4294967295
+    SnapNonSmoothedProperties: 0
+  _favorPredictionNetworkTransform: 1
+  _spectatorMovementSettings:
+    EnableTeleport: 1
+    TeleportThreshold: 2
+    AdaptiveInterpolationValue: 0
+    InterpolationValue: 2
+    SmoothedProperties: 4294967295
+    SnapNonSmoothedProperties: 0
 --- !u!1 &9038338044965587021
 GameObject:
   m_ObjectHideFlags: 0
@@ -332,7 +449,7 @@ Transform:
   m_LocalScale: {x: 0.15, y: 0.15, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3137341637283455056}
+  m_Father: {fileID: 3166555368002582694}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8261072787808159511
 MeshFilter:
