@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 6596203723911327595}
   - component: {fileID: 3883045231513322241}
   - component: {fileID: 2287940140626505035}
+  - component: {fileID: 7903653800804834137}
+  - component: {fileID: 3659442221247888737}
   - component: {fileID: 4207080231427631400}
   m_Layer: 0
   m_Name: Projectile
@@ -107,6 +109,37 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 3883045231513322241}
   _networkObjectCache: {fileID: 0}
+--- !u!114 &7903653800804834137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1536498049618017744}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41166e50cd66487194f828509101e2e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.LayerMember
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 3883045231513322241}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &3659442221247888737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1536498049618017744}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c71fd7f855ec523429999fc4e14a1928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Observing.NetworkObserver
+  _overrideType: 3
+  _updateHostVisibility: 1
+  _observerConditions:
+  - {fileID: 11400000, guid: c3f5fda94242f5245a84c830aa67769e, type: 2}
 --- !u!114 &4207080231427631400
 MonoBehaviour:
   m_ObjectHideFlags: 0

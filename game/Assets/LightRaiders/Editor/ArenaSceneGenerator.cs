@@ -44,6 +44,7 @@ namespace LightRaiders.Editor
             HostileEmitterPrefabGenerator.Generate();
             WaygatePrefabGenerator.Generate();
             ExfilSitePrefabGenerator.Generate();
+            HatchPrefabGenerator.Generate();
 
             Scene scene;
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionAssetPaths.BootstrapArenaScene) != null)

@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 7137557657203362521}
   - component: {fileID: 4433709594424519700}
   - component: {fileID: 3098451377629675928}
+  - component: {fileID: 2602157830092589538}
+  - component: {fileID: 8346326844593349034}
   m_Layer: 0
   m_Name: LootBag
   m_TagString: Untagged
@@ -106,6 +108,37 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 4433709594424519700}
   _networkObjectCache: {fileID: 0}
+--- !u!114 &2602157830092589538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1069689922057747626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41166e50cd66487194f828509101e2e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LightRaiders.Runtime::LightRaiders.LayerMember
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4433709594424519700}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &8346326844593349034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1069689922057747626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c71fd7f855ec523429999fc4e14a1928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Observing.NetworkObserver
+  _overrideType: 3
+  _updateHostVisibility: 1
+  _observerConditions:
+  - {fileID: 11400000, guid: c3f5fda94242f5245a84c830aa67769e, type: 2}
 --- !u!1 &1545698893957462210
 GameObject:
   m_ObjectHideFlags: 0

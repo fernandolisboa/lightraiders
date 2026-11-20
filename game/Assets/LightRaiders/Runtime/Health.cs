@@ -41,6 +41,12 @@ namespace LightRaiders
         /// </summary>
         public event Action Died;
 
+        /// <summary>
+        /// Raised on the server whenever damage lands on a living target (before
+        /// <see cref="Died"/> on a killing blow). Hatch channels (#39) cancel on it.
+        /// </summary>
+        public event Action Damaged;
+
         public override void OnStartServer()
         {
             /* Full bars from the server, the source of truth; the values
@@ -69,6 +75,8 @@ namespace LightRaiders
 
             if (remaining > 0)
                 _health.Value = Mathf.Max(0, _health.Value - remaining);
+
+            Damaged?.Invoke();
 
             if (_health.Value == 0)
                 Died?.Invoke();

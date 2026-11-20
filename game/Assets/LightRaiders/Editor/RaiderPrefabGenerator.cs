@@ -49,6 +49,10 @@ namespace LightRaiders.Editor
              * after a delay. Server-only; harmless on a Raider that never dies. */
             root.AddComponent<RaiderDeathHandler>();
 
+            /* Hatch Key placeholder (#39, PRD #31 Q6): one free key per Raider per
+             * raid, a replicated count until the Phase 4 inventory. */
+            root.AddComponent<HatchKeys>();
+
             /* Smoothed graphical child (#32): under CSP the root moves only on ticks
              * (30Hz) and reconcile writes it directly, so anything rendered straight
              * off the root steps and snaps. Visual and AimIndicator hang off this
