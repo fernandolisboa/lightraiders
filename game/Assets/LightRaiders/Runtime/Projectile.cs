@@ -157,6 +157,15 @@ namespace LightRaiders
                 Health health = hit.collider.GetComponentInParent<Health>();
                 if (health != null)
                 {
+                    /* Only bodies of THIS server count. Every in-process peer
+                     * (PlayMode harness: server + clients in one physics scene)
+                     * has its own copy of each Raider at the same pose; a
+                     * client copy cannot take server damage, so letting it
+                     * consume the shot would swallow the hit. In a real build
+                     * the server sees only its own copies, so this is a no-op. */
+                    if (health.NetworkManager != base.NetworkManager || !health.IsServerInitialized)
+                        continue;
+
                     if (health.Side == _side)
                         continue;   // same side - pass through (friendly fire off)
 
