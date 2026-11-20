@@ -123,6 +123,8 @@ namespace LightRaiders.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        private const float TeleportThresholdMeters = 2f;
+
         private static void AddTickSmoother(GameObject graphics, Transform target)
         {
             NetworkTickSmoother smoother = graphics.AddComponent<NetworkTickSmoother>();
@@ -132,6 +134,21 @@ namespace LightRaiders.Editor
                 throw new InvalidOperationException(
                     "FishNet renamed NetworkTickSmoother field '_initializationSettings.TargetTransform' — update RaiderPrefabGenerator.");
             targetTransform.objectReferenceValue = target;
+
+            /* Teleports (#35 doors, later Waygates) must SNAP the graphics, not glide
+             * them across the map. A Raider covers ~0.17m per 30Hz tick, so any
+             * per-tick jump beyond TeleportThresholdMeters is a teleport. */
+            foreach (string settings in new[] { "_controllerMovementSettings", "_spectatorMovementSettings" })
+            {
+                SerializedProperty enable = so.FindProperty(settings + ".EnableTeleport");
+                SerializedProperty threshold = so.FindProperty(settings + ".TeleportThreshold");
+                if (enable == null || threshold == null)
+                    throw new InvalidOperationException(
+                        "FishNet renamed NetworkTickSmoother field '" + settings + ".EnableTeleport/TeleportThreshold' — update RaiderPrefabGenerator.");
+                enable.boolValue = true;
+                threshold.floatValue = TeleportThresholdMeters;
+            }
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
