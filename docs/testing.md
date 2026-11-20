@@ -17,7 +17,7 @@ a fresh checkout, and Unity won't reliably create parent directories for
 
 ```powershell
 New-Item -ItemType Directory -Force "C:\Users\ferna\source\repos\lightraiders\artifacts" | Out-Null
-& "C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe" -batchmode -quit -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -executeMethod LightRaiders.Editor.ArenaSceneGenerator.GenerateAll -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\generate.log"
+& "C:\Program Files\Unity\Hub\Editor\6000.3.27f2\Editor\Unity.exe" -batchmode -quit -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -executeMethod LightRaiders.Editor.ArenaSceneGenerator.GenerateAll -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\generate.log"
 ```
 
 **Generated assets are committed.** The generator's outputs — `Raider.prefab`,
@@ -30,7 +30,7 @@ idempotent and GUID-preserving.
 
 ```powershell
 New-Item -ItemType Directory -Force "C:\Users\ferna\source\repos\lightraiders\artifacts" | Out-Null
-& "C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe" -runTests -batchmode -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -testPlatform PlayMode -testResults "C:\Users\ferna\source\repos\lightraiders\artifacts\playmode-results.xml" -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\playmode.log"
+& "C:\Program Files\Unity\Hub\Editor\6000.3.27f2\Editor\Unity.exe" -runTests -batchmode -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -testPlatform PlayMode -testResults "C:\Users\ferna\source\repos\lightraiders\artifacts\playmode-results.xml" -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\playmode.log"
 ```
 
 Note: NO `-quit` on the test command — it aborts the test run.
@@ -41,10 +41,10 @@ EditMode tests (`Tests/EditMode`, e.g. the Matins map smoke test) build
 generated content in memory and need no network session:
 
 ```powershell
-& "C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe" -runTests -batchmode -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -testPlatform EditMode -testResults "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode-results.xml" -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode.log"
+& "C:\Program Files\Unity\Hub\Editor\6000.3.27f2\Editor\Unity.exe" -runTests -batchmode -projectPath "C:\Users\ferna\source\repos\lightraiders\game" -testPlatform EditMode -testResults "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode-results.xml" -logFile "C:\Users\ferna\source\repos\lightraiders\artifacts\editmode.log"
 ```
 
-The hardcoded editor path version (`6000.3.19f1`) must match
+The hardcoded editor path version (`6000.3.27f2`) must match
 `game/ProjectSettings/ProjectVersion.txt`; update both commands above when the
 editor is upgraded.
 
