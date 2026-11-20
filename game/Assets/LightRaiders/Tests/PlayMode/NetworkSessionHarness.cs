@@ -121,6 +121,9 @@ namespace LightRaiders.Tests
              * initialized ServerManager; harmless on client-only managers. */
             LayerService layerService = go.AddComponent<LayerService>();
             layerService.SetNetworkManager(networkManager);
+            /* Extraction (#38/#39) likewise: server path on every manager, idle
+             * unless an Exfil departs or a Hatch completes. */
+            go.AddComponent<ExtractionService>().SetNetworkManager(networkManager);
 
             _createdManagers.Add(networkManager);
             return networkManager;

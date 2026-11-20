@@ -101,6 +101,22 @@ namespace LightRaiders
                     : "Waygate: ready (E)");
                 y += 22f;
             }
+
+            // Exfil (#38): every observed site that is counting down or departing.
+            Vector3 position = _owned.transform.position;
+            foreach (ExfilSite site in ExfilSite.Active)
+            {
+                if (site == null || site.NetworkManager != _networkManager || site.State == ExfilState.Idle)
+                    continue;
+                Vector3 offset = site.transform.position - position;
+                offset.y = 0f;
+                bool inZone = offset.sqrMagnitude <= ExfilSite.ZoneRadius * ExfilSite.ZoneRadius;
+                string text = site.State == ExfilState.Called
+                    ? "Exfil called: " + Mathf.CeilToInt(site.CountdownRemainingSeconds) + "s"
+                    : "Exfil departing";
+                GUI.Label(new Rect(10f, y, 400f, 22f), text + (inZone ? " (in zone)" : " (" + Mathf.RoundToInt(offset.magnitude) + " m)"));
+                y += 22f;
+            }
             GUI.color = previous;
         }
     }

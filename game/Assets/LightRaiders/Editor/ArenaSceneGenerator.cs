@@ -43,6 +43,7 @@ namespace LightRaiders.Editor
             RaiderPrefabGenerator.Generate();
             HostileEmitterPrefabGenerator.Generate();
             WaygatePrefabGenerator.Generate();
+            ExfilSitePrefabGenerator.Generate();
 
             Scene scene;
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionAssetPaths.BootstrapArenaScene) != null)
@@ -240,6 +241,12 @@ namespace LightRaiders.Editor
             LayerService layerService = session.AddComponent<LayerService>();
             layerService.SetNetworkManager(networkManager);
 
+            /* Extraction (#38): the server path shared by Exfil and Hatches -
+             * despawn, Extracted notice, debug rejoin. Idle in the arena. */
+            ExtractionService extraction = session.AddComponent<ExtractionService>();
+            extraction.SetNetworkManager(networkManager);
+            EditorUtility.SetDirty(extraction);
+
             EditorUtility.SetDirty(networkManager);
             EditorUtility.SetDirty(spawner);
             EditorUtility.SetDirty(respawner);
@@ -279,6 +286,11 @@ namespace LightRaiders.Editor
             raidHud.SetNetworkManager(networkManager);
             raidHud.SetFade(fade);
             EditorUtility.SetDirty(raidHud);
+
+            /* Extracted overlay + F8 debug rejoin (#38). */
+            ExtractionClient extractionClient = rigGo.AddComponent<ExtractionClient>();
+            extractionClient.SetNetworkManager(networkManager);
+            EditorUtility.SetDirty(extractionClient);
         }
 
         private static void BuildTargetSpawner(NetworkManager networkManager, Transform[] posts)

@@ -15,7 +15,7 @@ namespace LightRaiders.Editor
     /// Per ADR-0008 every Layer lives in the one physics scene, its geometry placed
     /// far from every other Layer's so nothing can be seen or shot across.
     /// Idempotent like the arena: reruns rebuild the generated roots in place.
-    /// Also places the Waygate pair (#37); Exfil sites and Hatches come with #38-#39.
+    /// Also places the Waygate pair (#37) and two Exfil sites (#38); Hatches come with #39.
     /// </summary>
     public static class MatinsGenerator
     {
@@ -68,6 +68,11 @@ namespace LightRaiders.Editor
         private static readonly Vector2 WaygateSlotA = new Vector2(-15f, 0f);
         private static readonly Vector2 WaygateSlotB = new Vector2(15f, 0f);
 
+        /* Exfil sites (#38): one at the back of each end district, their 8 m
+         * zones clear of the spawn points. District-local XZ. */
+        private static readonly int[] ExfilDistricts = { 0, DistrictCount - 1 };
+        private static readonly Vector2 ExfilSlot = new Vector2(0f, 15f);
+
         private const float BuildingSize = 6f;
         private const float BuildingHeight = 4f;
         private const float EntranceSize = 3f;
@@ -93,6 +98,8 @@ namespace LightRaiders.Editor
             public Transform[] SpawnPoints;
             /// <summary>The Waygate pair's two posts (#37), West and East Ward.</summary>
             public Transform[] WaygatePosts;
+            /// <summary>The two Exfil sites' posts (#38).</summary>
+            public Transform[] ExfilPosts;
         }
 
         /// <summary>
@@ -128,6 +135,7 @@ namespace LightRaiders.Editor
             NetworkManager networkManager = ArenaSceneGenerator.BuildNetworkSession(layout.SpawnPoints);
             ArenaSceneGenerator.BuildCameraRig(networkManager);
             BuildWaygateSpawner(networkManager, layout.WaygatePosts);
+            BuildPostSpawner(networkManager, SessionAssetPaths.ExfilSitePrefab, layout.ExfilPosts);
             HudGenerator.BuildHud(networkManager);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -165,6 +173,7 @@ namespace LightRaiders.Editor
 
             List<Transform> spawnPoints = new List<Transform>();
             Transform[] waygatePosts = new Transform[2];
+            List<Transform> exfilPosts = new List<Transform>();
             int interiorIndex = 0;
             for (int d = 0; d < DistrictCount; d++)
             {
@@ -197,10 +206,13 @@ namespace LightRaiders.Editor
                 if (d == WaygateDistrictB)
                     waygatePosts[1] = CreatePost(districtGo.transform, "WaygatePost", WaygateSlotB, Vector3.left);
 
+                if (System.Array.IndexOf(ExfilDistricts, d) >= 0)
+                    exfilPosts.Add(CreatePost(districtGo.transform, "ExfilPost", ExfilSlot, Vector3.back));
+
                 CreateBox(districtGo.transform, "Cover", new Vector3(0f, 0.75f, 6f), new Vector3(4f, 1.5f, 1f), materials.Wall);
             }
 
-            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray(), WaygatePosts = waygatePosts };
+            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray(), WaygatePosts = waygatePosts, ExfilPosts = exfilPosts.ToArray() };
         }
 
         private static Transform CreatePost(Transform parent, string name, Vector2 slot, Vector3 facing)
@@ -229,6 +241,24 @@ namespace LightRaiders.Editor
             spawner.SetNetworkManager(networkManager);
             spawner.SetWaygatePrefab(prefab);
             spawner.SetPosts(posts[0], LayerOf(posts[0]), posts[1], LayerOf(posts[1]));
+            EditorUtility.SetDirty(spawner);
+        }
+
+        /// <summary>A PostSpawner for one fixture type (Exfil sites, Hatches) on the session object.</summary>
+        private static void BuildPostSpawner(NetworkManager networkManager, string prefabPath, Transform[] posts)
+        {
+            NetworkObject prefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(prefabPath);
+            if (prefab == null)
+                throw new System.InvalidOperationException("Expected a prefab at '" + prefabPath + "' - run GenerateAll so its generator creates it first.");
+
+            int[] layers = new int[posts.Length];
+            for (int i = 0; i < posts.Length; i++)
+                layers[i] = LayerOf(posts[i]);
+
+            PostSpawner spawner = networkManager.gameObject.AddComponent<PostSpawner>();
+            spawner.SetNetworkManager(networkManager);
+            spawner.SetPrefab(prefab);
+            spawner.SetPosts(posts, layers);
             EditorUtility.SetDirty(spawner);
         }
 
