@@ -27,6 +27,8 @@ namespace LightRaiders.Editor
             // NetworkObject FIRST, on the root - never rely on FishNet's add-on-demand fallback.
             root.AddComponent<NetworkObject>();
             root.AddComponent<Projectile>();
+            // Layer-scoped (ADR-0008): a shot is seen only from the shooter's Layer.
+            LayerScopingGenerator.AddLayerScoping(root);
 
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             visual.name = "Visual";

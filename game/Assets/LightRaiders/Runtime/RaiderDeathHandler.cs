@@ -34,13 +34,14 @@ namespace LightRaiders
              * about to be destroyed and cannot schedule its own respawn, so the
              * persistent session respawner carries it out. */
             Vector3 deathPosition = transform.position;
+            int deathLayer = LayerMember.ServerLayerOf(this);
             NetworkConnection owner = base.Owner;
 
             RaiderRespawner respawner = base.NetworkManager != null
                 ? base.NetworkManager.GetComponent<RaiderRespawner>()
                 : null;
             if (respawner != null)
-                respawner.HandleRaiderDeath(owner, deathPosition);
+                respawner.HandleRaiderDeath(owner, deathPosition, deathLayer);
             else
                 // Misconfiguration: surface it loudly rather than silently vanishing a player.
                 Debug.LogWarning("RaiderDeathHandler found no RaiderRespawner on the session NetworkManager - the Raider despawns with no loot bag and no respawn. Wire a RaiderRespawner beside the NetworkManager.");

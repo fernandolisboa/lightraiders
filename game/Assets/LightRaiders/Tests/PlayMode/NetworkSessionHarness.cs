@@ -115,6 +115,13 @@ namespace LightRaiders.Tests
             }
 
             go.SetActive(true);
+
+            /* Layer scoping (ADR-0008) lives beside every NetworkManager, as in the
+             * generated scenes. Added after activation so it can hook the
+             * initialized ServerManager; harmless on client-only managers. */
+            LayerService layerService = go.AddComponent<LayerService>();
+            layerService.SetNetworkManager(networkManager);
+
             _createdManagers.Add(networkManager);
             return networkManager;
         }

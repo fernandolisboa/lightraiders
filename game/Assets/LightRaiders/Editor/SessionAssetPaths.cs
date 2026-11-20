@@ -11,12 +11,14 @@ namespace LightRaiders.Editor
         public const string PrefabsFolder = RootFolder + "/Prefabs";
         public const string ScenesFolder = RootFolder + "/Scenes";
         public const string MaterialsFolder = RootFolder + "/Materials";
+        public const string ObserversFolder = RootFolder + "/Observers";
 
         public const string RaiderPrefab = PrefabsFolder + "/Raider.prefab";
         public const string ProjectilePrefab = PrefabsFolder + "/Projectile.prefab";
         public const string DummyTargetPrefab = PrefabsFolder + "/DummyTarget.prefab";
         public const string HostileEmitterPrefab = PrefabsFolder + "/HostileEmitter.prefab";
         public const string LootBagPrefab = PrefabsFolder + "/LootBag.prefab";
+        public const string LayerConditionAsset = ObserversFolder + "/LayerCondition.asset";
         public const string BootstrapArenaScene = ScenesFolder + "/BootstrapArena.unity";
         public const string RaiderMaterial = MaterialsFolder + "/Raider.mat";
         public const string AimIndicatorMaterial = MaterialsFolder + "/AimIndicator.mat";
@@ -58,6 +60,7 @@ namespace LightRaiders.Editor
             EnsureFolder(RootFolder, "Prefabs");
             EnsureFolder(RootFolder, "Scenes");
             EnsureFolder(RootFolder, "Materials");
+            EnsureFolder(RootFolder, "Observers");
         }
     }
 }

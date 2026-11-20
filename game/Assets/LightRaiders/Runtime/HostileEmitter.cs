@@ -153,6 +153,8 @@ namespace LightRaiders
              * the first tick: Side.Hostile damages Raider-side Health only - never the
              * emitter, never another emitter or a dummy target. */
             nob.GetComponent<Projectile>().ServerInitCombat(Side.Hostile, ProjectileDamage);
+            // The shot lives in the emitter's Layer (ADR-0008).
+            LayerMember.StampBeforeSpawn(nob, LayerMember.ServerLayerOf(this));
             base.ServerManager.Spawn(nob);
         }
     }

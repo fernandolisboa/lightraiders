@@ -37,6 +37,10 @@ namespace LightRaiders.Editor
              * emitter shots (Side.Hostile) strip its Shield then Health, while Raider
              * fire (Side.Raider) still passes through friendly Raiders. The root
              * CharacterController is the collider the projectile sweep hits. */
+            /* Layer-scoped (ADR-0008): a Raider is observed only by connections in
+             * its Layer; LayerService moves it (and its owner's view) between Layers. */
+            LayerScopingGenerator.AddLayerScoping(root);
+
             Health health = root.AddComponent<Health>();
             SetSide(health, Side.Raider);
 
