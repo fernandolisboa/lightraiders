@@ -84,7 +84,7 @@ namespace LightRaiders
 
         private void LateUpdate()
         {
-            // LateUpdate: after NetworkTransform has moved the tracked objects this frame.
+            // LateUpdate: after the tracked objects have moved this frame (prediction/reconcile for Raiders, NetworkTransform for projectiles).
             if (_networkManager == null || !_networkManager.Initialized)
             {
                 ClearAllBars();
@@ -116,7 +116,10 @@ namespace LightRaiders
                 }
 
                 bar.Health = health;
-                bar.Target = networkObject.transform;
+                /* Raiders: follow the smoothed graphical child so the bar doesn't step
+                 * at the tick rate (#32). Everything else follows its root. */
+                Raider raider = networkObject.GetComponent<Raider>();
+                bar.Target = raider != null ? raider.VisualTransform : networkObject.transform;
                 UpdateBar(bar);
             }
 

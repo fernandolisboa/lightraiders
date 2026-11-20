@@ -50,9 +50,9 @@ namespace LightRaiders.Editor
             RefreshDefaultPrefabsMenu.RebuildDefaultPrefabs();
         }
 
-        /* Deliberate duplication of RaiderPrefabGenerator.AddNetworkTransform
-         * rather than parameterizing it: the Raider variant also sets the
-         * CharacterController component configuration; keep both fail-fast. */
+        /* The Raider no longer carries a NetworkTransform (client-side
+         * prediction drives it, ADR-0007), so this is the only NetworkTransform
+         * setup left; keep it fail-fast on renamed serialized fields. */
         private static void AddNetworkTransform(GameObject root)
         {
             NetworkTransform networkTransform = root.AddComponent<NetworkTransform>();

@@ -115,7 +115,7 @@ namespace LightRaiders.Tests
             Vector3 baseline = ownedRaider.transform.position;
             scripted.Intent = new RaiderIntent { Move = new Vector2(1f, 0f) };
 
-            // 15s: 30Hz ticks plus 2-tick interpolation on the owning client.
+            // 15s: generous bound; the owner predicts locally from its first tick.
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarDistance(ownedRaider.transform.position, baseline) > 0.5f,
                 "Owned Raider never moved in response to intent.",
@@ -132,7 +132,7 @@ namespace LightRaiders.Tests
 
             /* Lock-on while moving, fixed pitch folded into the condition (a
              * tilt-while-moving rig must fail here): per-poll error is
-             * ~5*frameDt plus up to one 30Hz tick of interpolation catch-up
+             * ~5*frameDt plus up to one 30Hz tick step of the predicted root
              * (~0.17m); any frame under ~65ms satisfies 0.5, and WaitUntil
              * polls every frame. */
             yield return _harness.WaitUntil(
@@ -225,7 +225,7 @@ namespace LightRaiders.Tests
             providerA.Intent = new RaiderIntent { Move = new Vector2(1f, 0f) };
             providerB.Intent = new RaiderIntent { Move = new Vector2(-1f, 0f) };
 
-            // Positive control: A's Raider moves, proving ticks/RPCs flow.
+            // Positive control: A's Raider moves, proving ticks and replicates flow.
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.PlanarDistance(raiderA.transform.position, baselineA) > 0.5f,
                 "Positive control failed: A's own Raider never moved.",

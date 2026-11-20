@@ -212,7 +212,7 @@ namespace LightRaiders.Tests
                 "Fire intent never spawned a projectile on the server.");
             scripted.Intent = new RaiderIntent();
 
-            // 15s: 30Hz ticks plus 2-tick interpolation on the observing client.
+            // 15s: 30Hz ticks plus spawn replication to the observing client.
             yield return _harness.WaitUntil(
                 () => NetworkSessionHarness.CountProjectiles(clientB.ClientManager.Objects.Spawned) >= 1,
                 "Client B never saw the projectile.",
@@ -435,9 +435,10 @@ namespace LightRaiders.Tests
             yield return _harness.SettleServerRaider(raiderAOnServer);
             yield return _harness.SettleServerRaider(raiderBOnServer);
 
-            /* The component only sends intent when IsOwner, so this provider on
-             * A's Raider in B's view is never polled; FishNet's RequireOwnership
-             * is the second line of defense, deliberately untested here. */
+            /* Only the owner authors replicate input, so this provider on A's
+             * Raider in B's view is never polled; the server accepts replicate
+             * input only from the owner - the second line of defense,
+             * deliberately untested here. */
             ScriptedRaiderIntentProvider hostileProvider = new ScriptedRaiderIntentProvider();
             hostileProvider.Intent = new RaiderIntent { FirePressed = true };
             raiderAOnB.GetComponent<RaiderMovement>().SetIntentProvider(hostileProvider);

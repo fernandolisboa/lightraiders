@@ -6,10 +6,10 @@ namespace LightRaiders
 {
     /// <summary>
     /// Server-authoritative fire per ADR-0005: consumes the level-state
-    /// FirePressed from the Raider's single intent pipe (RaiderMovement's
-    /// server tick branch calls in), validates a per-Raider cooldown in server
-    /// ticks, and spawns a server-owned Projectile from the muzzle along the
-    /// server-authoritative facing.
+    /// FirePressed from the Raider's single intent pipe (RaiderMovement's Replicate
+    /// calls in on the server branch only — fire is never client-predicted),
+    /// validates a per-Raider cooldown in server ticks, and spawns a server-owned
+    /// Projectile from the muzzle along the server-authoritative facing.
     /// </summary>
     public sealed class RaiderWeapon : NetworkBehaviour
     {
@@ -44,8 +44,8 @@ namespace LightRaiders
         }
 
         /// <summary>
-        /// Called by RaiderMovement's server tick branch - the single intent
-        /// pipe. Level semantics: firePressed is true on every tick the control
+        /// Called by RaiderMovement's Replicate on the server branch - the single
+        /// intent pipe. Level semantics: firePressed is true on every tick the control
         /// is held; the cooldown owns the fire rate (held button = autofire).
         /// </summary>
         internal void TryFireOnServer(bool firePressed)
