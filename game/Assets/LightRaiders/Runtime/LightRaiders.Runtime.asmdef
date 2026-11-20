@@ -3,6 +3,7 @@
     "rootNamespace": "LightRaiders",
     "references": [
         "FishNet.Runtime",
+        "GameKit.Dependencies",
         "Unity.InputSystem",
         "UnityEngine.UI"
     ],
