@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FishNet.Managing;
+using FishNet.Object;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -14,7 +15,7 @@ namespace LightRaiders.Editor
     /// Per ADR-0008 every Layer lives in the one physics scene, its geometry placed
     /// far from every other Layer's so nothing can be seen or shot across.
     /// Idempotent like the arena: reruns rebuild the generated roots in place.
-    /// Waygates, Exfil sites and Hatches are added by their own slices (#37-#39).
+    /// Also places the Waygate pair (#37); Exfil sites and Hatches come with #38-#39.
     /// </summary>
     public static class MatinsGenerator
     {
@@ -60,6 +61,13 @@ namespace LightRaiders.Editor
         private static readonly Vector2 UndercroftEntranceSlot = new Vector2(10f, -10f);
         private static readonly Vector2[] SpawnSlots = { new Vector2(-4f, 0f), new Vector2(4f, 0f) };
 
+        /* Waygate pair (#37): one gate at the outer edge of each end district,
+         * facing inward, linking the two ends of the map. District-local XZ. */
+        private const int WaygateDistrictA = 0;
+        private const int WaygateDistrictB = DistrictCount - 1;
+        private static readonly Vector2 WaygateSlotA = new Vector2(-15f, 0f);
+        private static readonly Vector2 WaygateSlotB = new Vector2(15f, 0f);
+
         private const float BuildingSize = 6f;
         private const float BuildingHeight = 4f;
         private const float EntranceSize = 3f;
@@ -83,6 +91,8 @@ namespace LightRaiders.Editor
         {
             public GameObject Root;
             public Transform[] SpawnPoints;
+            /// <summary>The Waygate pair's two posts (#37), West and East Ward.</summary>
+            public Transform[] WaygatePosts;
         }
 
         /// <summary>
@@ -117,6 +127,7 @@ namespace LightRaiders.Editor
             Layout layout = BuildMap(materials);
             NetworkManager networkManager = ArenaSceneGenerator.BuildNetworkSession(layout.SpawnPoints);
             ArenaSceneGenerator.BuildCameraRig(networkManager);
+            BuildWaygateSpawner(networkManager, layout.WaygatePosts);
             HudGenerator.BuildHud(networkManager);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -153,6 +164,7 @@ namespace LightRaiders.Editor
             Door[] undercroftDoors = BuildUndercroft(undercroft.transform, materials);
 
             List<Transform> spawnPoints = new List<Transform>();
+            Transform[] waygatePosts = new Transform[2];
             int interiorIndex = 0;
             for (int d = 0; d < DistrictCount; d++)
             {
@@ -180,10 +192,44 @@ namespace LightRaiders.Editor
                     spawnPoints.Add(spawn.transform);
                 }
 
+                if (d == WaygateDistrictA)
+                    waygatePosts[0] = CreatePost(districtGo.transform, "WaygatePost", WaygateSlotA, Vector3.right);
+                if (d == WaygateDistrictB)
+                    waygatePosts[1] = CreatePost(districtGo.transform, "WaygatePost", WaygateSlotB, Vector3.left);
+
                 CreateBox(districtGo.transform, "Cover", new Vector3(0f, 0.75f, 6f), new Vector3(4f, 1.5f, 1f), materials.Wall);
             }
 
-            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray() };
+            return new Layout { Root = root, SpawnPoints = spawnPoints.ToArray(), WaygatePosts = waygatePosts };
+        }
+
+        private static Transform CreatePost(Transform parent, string name, Vector2 slot, Vector3 facing)
+        {
+            GameObject post = new GameObject(name);
+            post.transform.SetParent(parent, false);
+            post.transform.localPosition = new Vector3(slot.x, 0f, slot.y);
+            post.transform.localRotation = Quaternion.LookRotation(facing, Vector3.up);
+            return post.transform;
+        }
+
+        /// <summary>The Layer a post stands in: its nearest LayerInfo ancestor.</summary>
+        internal static int LayerOf(Transform t)
+        {
+            LayerInfo info = t.GetComponentInParent<LayerInfo>(true);
+            return info != null ? info.LayerId : LayerMember.Surface;
+        }
+
+        private static void BuildWaygateSpawner(NetworkManager networkManager, Transform[] posts)
+        {
+            NetworkObject prefab = AssetDatabase.LoadAssetAtPath<NetworkObject>(SessionAssetPaths.WaygatePrefab);
+            if (prefab == null)
+                throw new System.InvalidOperationException("Expected the Waygate prefab at '" + SessionAssetPaths.WaygatePrefab + "' - run GenerateAll so WaygatePrefabGenerator creates it first.");
+
+            WaygateSpawner spawner = networkManager.gameObject.AddComponent<WaygateSpawner>();
+            spawner.SetNetworkManager(networkManager);
+            spawner.SetWaygatePrefab(prefab);
+            spawner.SetPosts(posts[0], LayerOf(posts[0]), posts[1], LayerOf(posts[1]));
+            EditorUtility.SetDirty(spawner);
         }
 
         internal static Vector3 DistrictCentre(int district) => new Vector3((district - (DistrictCount - 1) * 0.5f) * DistrictSize, 0f, 0f);

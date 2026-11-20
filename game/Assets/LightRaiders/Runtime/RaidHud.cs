@@ -6,9 +6,9 @@ namespace LightRaiders
 {
     /// <summary>
     /// Graybox raid-state HUD (Phase 2): the local Raider's current Layer, plus
-    /// a fade on every door transit. Client-local and read-only - it reads the
+    /// a fade on every door or Waygate transit, and the nearby Waygate cooldown. Client-local and read-only - it reads the
     /// replicated <see cref="LayerMember"/> of the owned Raider, and fades on the
-    /// owner's predicted transit (<see cref="RaiderMovement.LocalDoorTransit"/>)
+    /// owner's predicted transit (<see cref="RaiderMovement.LocalTransit"/>)
     /// so the fade hides the jump rather than trailing the Layer SyncVar. IMGUI on purpose:
     /// Phase 6 replaces all of it. Later Phase 2 slices add Waygate cooldown,
     /// Exfil countdown and Hatch channel lines here.
@@ -19,6 +19,9 @@ namespace LightRaiders
         private NetworkManager _networkManager;
         [SerializeField]
         private ScreenFade _fade;
+
+        /// <summary>The Waygate line shows while the Raider is this close to a gate.</summary>
+        public const float WaygateHudRadius = 6f;
 
         private NetworkObject _owned;
         private RaiderMovement _ownedMovement;
@@ -46,17 +49,17 @@ namespace LightRaiders
         private void Acquire(NetworkObject owned)
         {
             if (_ownedMovement != null)
-                _ownedMovement.LocalDoorTransit -= OnLocalDoorTransit;
+                _ownedMovement.LocalTransit -= OnLocalTransit;
 
             _owned = owned;
             _ownedMovement = owned != null ? owned.GetComponent<RaiderMovement>() : null;
             _lastLayer = int.MinValue;
 
             if (_ownedMovement != null)
-                _ownedMovement.LocalDoorTransit += OnLocalDoorTransit;
+                _ownedMovement.LocalTransit += OnLocalTransit;
         }
 
-        private void OnLocalDoorTransit()
+        private void OnLocalTransit()
         {
             if (_fade != null)
                 _fade.Trigger();
@@ -88,6 +91,16 @@ namespace LightRaiders
             GUI.color = Color.white;
             GUI.Label(new Rect(10f, y, 400f, 22f), "Layer: " + LayerInfo.NameOf(_lastLayer == int.MinValue ? LayerMember.Surface : _lastLayer));
             y += 22f;
+
+            Waygate gate = Waygate.FindNearest(_owned.transform.position, _networkManager, WaygateHudRadius);
+            if (gate != null)
+            {
+                float remaining = gate.CooldownRemainingSeconds;
+                GUI.Label(new Rect(10f, y, 400f, 22f), remaining > 0f
+                    ? "Waygate: cooling down " + Mathf.CeilToInt(remaining) + "s"
+                    : "Waygate: ready (E)");
+                y += 22f;
+            }
             GUI.color = previous;
         }
     }

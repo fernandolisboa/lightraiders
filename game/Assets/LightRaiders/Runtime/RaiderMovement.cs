@@ -45,12 +45,18 @@ namespace LightRaiders
         private bool _interactLatched;
 
         /// <summary>
-        /// Raised on the owning client when its Raider goes through a door, at the
+        /// Raised on the owning client when its Raider goes through a door or a
+        /// Waygate, at the
         /// moment of the (predicted) teleport and never on a replay. Presentation
         /// hooks (the transition fade) listen here so they cover the jump instead of
         /// trailing it by a round trip.
         /// </summary>
-        public event System.Action LocalDoorTransit;
+        public event System.Action LocalTransit;
+
+        /* Owner-only memo of the replicate tick at which it predicted a Waygate
+         * use (0 = none), so replays repeat that use. */
+        private uint _predictedGateTick;
+        private LayerMember _layerMember;
 
         /// <summary>
         /// Owner-side input for one tick. FishNet serializes public fields; the
@@ -190,7 +196,7 @@ namespace LightRaiders
                 ApplyFacing(rd.AimPoint);
             Move(hasInput ? rd.Move : Vector2.zero, delta);
 
-            /* Doors (#35): predicted like movement - the owner teleports locally the
+            /* Doors (#35) and Waygates (#37): predicted like movement - the owner teleports locally the
              * same tick the server does, and reconcile corrects any disagreement.
              * Only the server changes the Layer (observer scoping is authoritative). */
             if (_interactCooldownTicks > 0)
@@ -200,7 +206,7 @@ namespace LightRaiders
                 if (!rd.Interact)
                     _interactLatched = false;
                 else if (!_interactLatched && _interactCooldownTicks == 0)
-                    TryUseDoor(state);
+                    TryUseInteractable(state, rd.GetTick());
             }
 
             /* Fire is SERVER-ONLY (ADR-0005): the server owns the projectile, the
@@ -217,25 +223,64 @@ namespace LightRaiders
             }
         }
 
-        private void TryUseDoor(ReplicateState state)
+        /// <summary>
+        /// One interact press: a door if one is in reach, otherwise a Waygate.
+        /// Doors are static scene data, so every runner resolves them the same way.
+        /// A Waygate's readiness is server state: the server decides, the owner
+        /// predicts from its replicated view, and spectators wait for correction.
+        /// </summary>
+        private void TryUseInteractable(ReplicateState state, uint tick)
         {
             Door door = Door.FindUsable(transform.position);
-            if (door == null)
+            if (door != null)
+            {
+                Door destination = door.Linked;
+                Transit(destination.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject), destination.LayerId, state);
+                return;
+            }
+
+            _layerMember ??= GetComponent<LayerMember>();
+            int myLayer = _layerMember != null ? _layerMember.LayerId : LayerMember.Surface;
+            Waygate gate = Waygate.FindUsable(transform.position, base.NetworkManager, myLayer);
+            if (gate == null)
                 return;
 
-            Door destination = door.Linked;
-            Teleport(destination.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject));
+            bool use;
+            if (IsServerInitialized)
+                use = gate.ServerTryUse();
+            else if (!IsOwner)
+                return;
+            else if (state.IsReplayed())
+                /* Replays re-run a use the owner already predicted, regardless of
+                 * the cooldown it has since learned about (the use itself started
+                 * that cooldown). Reconcile clears the memo once the server's
+                 * state for that tick is in. */
+                use = tick == _predictedGateTick;
+            else
+            {
+                use = gate.IsReady;
+                if (use)
+                    _predictedGateTick = tick;
+            }
+
+            if (use)
+                Transit(gate.FindArrivalPosition(_controller.radius, _controller.height, base.NetworkObject), gate.DestinationLayer, state);
+        }
+
+        private void Transit(Vector3 arrival, int destinationLayer, ReplicateState state)
+        {
+            Teleport(arrival);
             _interactCooldownTicks = (ushort)Mathf.CeilToInt(InteractCooldownSeconds * (float)base.TimeManager.TickRate);
             _interactLatched = true;
 
             if (IsOwner && !state.IsReplayed())
-                LocalDoorTransit?.Invoke();
+                LocalTransit?.Invoke();
 
             if (IsServerInitialized)
             {
                 LayerService layers = base.NetworkManager.GetComponent<LayerService>();
                 if (layers != null)
-                    layers.ServerMoveRaider(base.NetworkObject, destination.LayerId);
+                    layers.ServerMoveRaider(base.NetworkObject, destinationLayer);
             }
         }
 
@@ -258,6 +303,8 @@ namespace LightRaiders
             _verticalVelocity = rd.VerticalVelocity;
             _interactCooldownTicks = rd.InteractCooldownTicks;
             _interactLatched = rd.InteractLatched;
+            if (_predictedGateTick != 0 && rd.GetTick() >= _predictedGateTick)
+                _predictedGateTick = 0;
 
             /* The CharacterController must be disabled before its Transform is
              * written, or the physics body lags a tick behind the visual position

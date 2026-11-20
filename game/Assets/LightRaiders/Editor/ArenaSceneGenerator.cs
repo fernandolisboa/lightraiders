@@ -42,6 +42,7 @@ namespace LightRaiders.Editor
             LootBagPrefabGenerator.Generate();
             RaiderPrefabGenerator.Generate();
             HostileEmitterPrefabGenerator.Generate();
+            WaygatePrefabGenerator.Generate();
 
             Scene scene;
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionAssetPaths.BootstrapArenaScene) != null)
